@@ -20,7 +20,7 @@ export function createInitialState(businessId = "saas", rng = Math.random) {
     price, advertising, employees: business.employees, developmentLevel: 42,
     satisfaction: 67, churnRate: .045, brand: 28, scenario: null, strategy: "growth",
     regime: "INTRODUCTION", totalMarket: Math.round(business.marketSize * (.92 + rng() * .16)), marketShare: Math.round(customers / business.marketSize * 1000) / 10,
-    competitors: createCompetitors(price), pendingEffects: [], eventChain: null, ceoTrust: 70, lowScoreStreak: 0,
+    competitors: createCompetitors(price), pendingEffects: [], activeProject: null, completedProjects: [], operatingEfficiency: 1, eventChain: null, ceoTrust: 70, lowScoreStreak: 0,
     decisionStreaks: { advertising: 0, discount: 0, hiring: 0, development: 0, priceChanges: 0, repeatedPlan: 0 }, activeCrises: [],
     marketTraits: { priceSensitivity: rng() > .5 ? "HIGH" : "BALANCED", techChange: rng() > .5 ? "FAST" : "STEADY", loyalty: rng() > .5 ? "LOW" : "HIGH" },
     warning: null, warningCount: 0, crisisTurns: 0, leaderTurns: 0, resultType: null,

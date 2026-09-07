@@ -10,8 +10,10 @@ import { evaluateDecision, updateCeoStatus } from "../src/decisionScore.js";
 import { chainEffects, growthRiskMultiplier, updateEventChain } from "../src/growthRisk.js";
 import { resolveExecution, executionSummary } from "../src/execution.js";
 import { advanceCompetition, competitivePressure } from "../src/competition.js";
-import { executionReportHtml } from "../src/ui.js";
+import { executionReportHtml, resultModalHtml, scoreRating } from "../src/ui.js";
 import { competitorLabel, competitorTypeLabel, regimeLabel, strategyLabel } from "../src/labels.js";
+import { advanceProject, startProject } from "../src/projects.js";
+import { projectById, projects } from "../src/data/projects.js";
 
 const scenario = id => scenarios.find(item => item.id === id);
 const rngSequence = (...values) => { let index = 0; return () => values[Math.min(index++, values.length - 1)]; };
@@ -137,6 +139,47 @@ test("a valuable differentiated company can reach acquisition", () => {
 test("save data round-trips the complete game state", () => {
   const state = createInitialState("education", () => .5);
   assert.deepEqual(deserializeGame(serializeGame(state)), state);
+});
+
+test("a long-term project charges its full cost when started and enforces one active project", () => {
+  const base = { ...createInitialState(() => .5), cash: 20000000 };
+  const started = startProject(base, "new-product");
+  assert.equal(started.error, null);
+  assert.equal(started.state.cash, base.cash - projectById("new-product").cost);
+  assert.equal(started.state.activeProject.remaining, 3);
+  assert.match(startProject(started.state, "rebrand").error, /1件/);
+});
+
+test("a project cannot start without enough cash", () => {
+  const state = { ...createInitialState(() => .5), cash: 1 };
+  const attempted = startProject(state, "security");
+  assert.match(attempted.error, /資金/);
+  assert.equal(attempted.state, state);
+});
+
+test("a project advances each quarter and applies its effect only on completion", () => {
+  const project = projectById("new-product");
+  let state = { ...createInitialState(() => .5), activeProject: { id: project.id, remaining: project.duration, duration: project.duration } };
+  const initialLevel = state.developmentLevel;
+  let progress = advanceProject(state);
+  assert.equal(progress.state.activeProject.remaining, 2);
+  assert.equal(progress.state.developmentLevel, initialLevel);
+  progress = advanceProject(progress.state);
+  progress = advanceProject(progress.state);
+  assert.equal(progress.state.activeProject, null);
+  assert.equal(progress.state.developmentLevel, initialLevel + 15);
+  assert.deepEqual(progress.state.completedProjects, [project.id]);
+});
+
+test("project progress survives save and continue deserialization", () => {
+  const state = { ...createInitialState(() => .5), activeProject: { id: "operations", remaining: 1, duration: 2 } };
+  assert.deepEqual(deserializeGame(serializeGame(state)).activeProject, state.activeProject);
+  const legacy = { ...state }; delete legacy.activeProject; delete legacy.completedProjects; delete legacy.operatingEfficiency;
+  const restored = deserializeGame(JSON.stringify(legacy));
+  assert.equal(restored.activeProject, null);
+  assert.deepEqual(restored.completedProjects, []);
+  assert.equal(restored.operatingEfficiency, 1);
+  assert.equal(projects.length, 5);
 });
 
 test("a balanced, signal-aware decision receives a high decision score", () => {
@@ -272,6 +315,27 @@ test("execution report includes plans, actuals, reasons and competitor changes",
   const report = { executionReport: executionSummary(execution), competitorActions: [{ id: "A", name: "A COMPANY", type: "PRICE_CUT", before: { price: 850, product: 38, brand: 34, share: 31 }, after: { price: 720, product: 38, brand: 34, share: 35 } }], marketShareBefore: 23, marketShareAfter: 18 };
   const html = executionReportHtml(report);
   assert.match(html, /予定 4人 ／ 実績 4人/); assert.match(html, /test/); assert.match(html, /23% → 18%/); assert.match(html, /A社/);
+});
+
+test("result modal reuses exact report values and omits absent risk events", () => {
+  const report = { decisionScore: 86, decisionFeedback: ["判断の根拠"], ceoTrust: 82, before: { customers: 3820, satisfaction: 71 }, customers: 4210, satisfaction: 74, profit: 1240000, marketShareBefore: 7.7, marketShareAfter: 8.4, scenario: { title: "広告の追い風" }, advice: "商品力も確認しましょう", competitorSignal: "B社が値下げしました", executionReport: { advertising: { reason: "想定以上の成果" }, hiring: { planned: 5, actual: 3 }, development: { reason: "成果は次期以降" }, shocks: [] }, competitorActions: [{ id: "B", type: "PRICE_CUT" }] };
+  const html = resultModalHtml(report, 7);
+  assert.match(html, /YEAR 2 \/ Q3 RESULT/);
+  assert.match(html, /data-score="86"/);
+  assert.match(html, /3,820 → 4,210/);
+  assert.match(html, /7\.7% → 8\.4%/);
+  assert.match(html, /82 \/ 100/);
+  assert.match(html, /B社が値下げ/);
+  assert.doesNotMatch(html, /重大リスク|undefined/);
+});
+
+test("result modal displays risk events only when present and keeps score bands", () => {
+  const report = { decisionScore: 59, decisionFeedback: [], ceoTrust: 40, before: { customers: 10, satisfaction: 50 }, customers: 8, satisfaction: 45, profit: -100, marketShareBefore: 2, marketShareAfter: 1.5, executionReport: { shocks: ["サーバー障害が発生"] } };
+  assert.match(resultModalHtml(report), /重大リスク: サーバー障害が発生/);
+  assert.equal(scoreRating(90).label, "非常に良い判断");
+  assert.equal(scoreRating(70).label, "堅実な判断");
+  assert.equal(scoreRating(60).label, "やや危険");
+  assert.equal(scoreRating(59).label, "危険な判断");
 });
 
 test("UI labels translate regimes, competitor types and strategies without changing internal values", () => {

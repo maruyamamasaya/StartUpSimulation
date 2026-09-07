@@ -8,6 +8,7 @@ import { balance } from "./data/balance.js";
 import { evaluateDecision, updateCeoStatus } from "./decisionScore.js";
 import { updateEventChain } from "./growthRisk.js";
 import { resolveExecution, executionSummary } from "./execution.js";
+import { advanceProject } from "./projects.js";
 
 function applyPending(state) {
   const due = state.pendingEffects.filter(effect => effect.due <= state.month);
@@ -92,6 +93,8 @@ export function advanceTurn(state, decisions, rng = Math.random) {
     emergencyDebt: (state.emergencyDebt || 0) + result.emergencyLoan, dangerMonths, crisisTurns, leaderTurns, lastDecisions: { ...decisions }, decisionStreaks,
     ceoTrust: ceo.ceoTrust, lowScoreStreak: ceo.lowScoreStreak, lastDecisionScore: decisionAssessment.score,
     activeCrises: [...execution.shocks.map(shock => shock.label), ...(chain ? [chain.label] : []), ...(state.scenario.modifiers.market < .7 ? [state.scenario.title] : [])], gameOver: false };
+  const projectProgress = advanceProject(next);
+  next = projectProgress.state;
   const risk = assessRisk(next, before);
   const warningCount = risk && state.warning?.type === risk.type ? state.warningCount + 1 : risk ? 1 : 0;
   const failure = risk && (risk.immediate || warningCount >= balance.warningDuration) ? risk.type : null;
@@ -101,7 +104,7 @@ export function advanceTurn(state, decisions, rng = Math.random) {
   if (finished && !next.resultType) next.resultType = "TIME LIMIT FAILURE";
   next.gameOver = Boolean(next.resultType);
   const bankrupt = next.resultType === "BANKRUPTCY";
-  const report = { ...result, before: { ...before, marketShare: state.marketShare }, decisions: { ...decisions }, scenario: state.scenario, advice: feedback[state.scenario.advice], decisionScore: decisionAssessment.score, decisionFeedback: decisionAssessment.feedback, executionReport: executionSummary(execution), ceoTrust: next.ceoTrust, bankrupt, finished, warning: next.warning, resultType: next.resultType, regimeChange: regime !== state.regime ? `${state.regime} → ${regime}` : null, competitorSignal: competitorSignal(competitors), competitorActions: competitors.map(c => ({ id: c.id, name: c.name, ...c.lastAction, after: { price: c.price, product: c.product, brand: c.brand, share: c.share } })), marketShareBefore: state.marketShare, marketShareAfter: marketShare, activeCrises: next.activeCrises, appliedEffects: prepared.appliedEffects };
+  const report = { ...result, before: { ...before, marketShare: state.marketShare }, decisions: { ...decisions }, scenario: state.scenario, advice: feedback[state.scenario.advice], decisionScore: decisionAssessment.score, decisionFeedback: decisionAssessment.feedback, executionReport: executionSummary(execution), ceoTrust: next.ceoTrust, bankrupt, finished, warning: next.warning, resultType: next.resultType, regimeChange: regime !== state.regime ? `${state.regime} → ${regime}` : null, competitorSignal: competitorSignal(competitors), competitorActions: competitors.map(c => ({ id: c.id, name: c.name, ...c.lastAction, after: { price: c.price, product: c.product, brand: c.brand, share: c.share } })), marketShareBefore: state.marketShare, marketShareAfter: marketShare, activeCrises: next.activeCrises, appliedEffects: prepared.appliedEffects, projectUpdate: projectProgress.update };
   next.history = [...state.history, report];
   if (!next.gameOver) next.scenario = selectScenario(next, rng);
   return next;

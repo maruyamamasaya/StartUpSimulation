@@ -4,6 +4,7 @@ import { executiveMeeting } from "./meeting.js";
 import { businessById } from "./data/businesses.js";
 import { balance } from "./data/balance.js";
 import { competitorLabel, competitorTypeLabel, regimeLabel, strategyLabel } from "./labels.js";
+import { projects, projectById } from "./data/projects.js";
 
 const yen = value => `${Math.round(value).toLocaleString("ja-JP")}円`;
 const signed = value => `${value >= 0 ? "+" : ""}${Math.round(value).toLocaleString("ja-JP")}`;
@@ -21,6 +22,11 @@ export function bindUI(actions) {
     if (button) actions.onAdjust(button.dataset.key, Number(button.dataset.direction));
   });
   document.querySelector("#ending").addEventListener("click", event => { if (event.target.closest("button")) actions.onRestart(); });
+  document.querySelector("#continue-quarter").addEventListener("click", actions.onResultContinue);
+  document.querySelector("#previous-result").addEventListener("click", actions.onPreviousResult);
+  document.querySelector("#project-summary").addEventListener("click", event => { if (event.target.closest("button")) actions.onOpenProjects(); });
+  document.querySelector("#close-projects").addEventListener("click", actions.onCloseProjects);
+  document.querySelector("#project-list").addEventListener("click", event => { const button = event.target.closest("button[data-project]"); if (button) actions.onStartProject(button.dataset.project); });
 }
 
 export function render(state, decisions, evaluation = null) {
@@ -46,6 +52,11 @@ export function render(state, decisions, evaluation = null) {
   document.querySelector("#controls").innerHTML = controlDefinitions.map(([key, label, code, format]) => `<div class="control"><div><small>${code}</small><label>${label}</label></div><div class="stepper"><button data-key="${key}" data-direction="-1" aria-label="${label}を減らす">−</button><output>${format(decisions[key])}</output><button data-key="${key}" data-direction="1" aria-label="${label}を増やす">＋</button></div></div>`).join("");
   document.querySelector("#strategy").innerHTML = Object.entries(strategies).map(([id, strategy]) => `<button data-strategy="${id}" class="${state.strategy === id ? "selected" : ""}" title="${strategy.description}">${strategyLabel(id)}</button>`).join("");
   document.querySelector("#planned-cost").textContent = yen(decisions.advertising + decisions.development + decisions.hires * 160000);
+  const activeProject = state.activeProject && projectById(state.activeProject.id);
+  const projectSummary = document.querySelector("#project-summary");
+  projectSummary.innerHTML = activeProject
+    ? `<div><small>LONG-TERM PROJECT</small><strong>${activeProject.name}</strong><span>進行中 ${activeProject.duration - state.activeProject.remaining} / ${activeProject.duration} 四半期</span></div><button class="text-button">詳細を見る</button>`
+    : `<div><small>LONG-TERM PROJECT</small><strong>進行中のプロジェクトなし</strong></div><button class="text-button" ${state.gameOver ? "disabled" : ""}>新規開始</button>`;
   const crisis = state.cash < balance.crisisThreshold;
   document.querySelector("#crisis").hidden = !crisis;
   document.querySelector("#emergency-loan").hidden = !crisis;
@@ -53,26 +64,95 @@ export function render(state, decisions, evaluation = null) {
   const warning = document.querySelector("#warning");
   warning.hidden = !state.warning;
   if (state.warning) warning.innerHTML = `<div class="section-label"><span>SURVIVAL</span> BOARD WARNING</div><h2>${state.warning.type}</h2><p>${state.warning.message}</p><p>次の四半期は、立て直しの重要な機会です。</p>`;
-  if (state.history.length) renderResult(state.history.at(-1));
+  document.querySelector("#previous-result").hidden = state.history.length === 0;
   const report = state.history.at(-1);
   document.querySelector("#annual").hidden = !(report && state.month > 1 && (state.month - 1) % 4 === 0);
   if (report && state.month > 1 && (state.month - 1) % 4 === 0) document.querySelector("#annual").innerHTML = `<div class="section-label"><span>ANNUAL</span> YEAR ${Math.floor((state.month - 2) / 4) + 1} REVIEW</div><p>年間売上 <strong>${yen(report.revenue * 4)}</strong> ／ 年間利益 <strong>${yen(report.profit * 4)}</strong> ／ 企業価値 <strong>${yen(companyValue(state))}</strong></p>`;
   const pending = state.pendingEffects || [];
   document.querySelector("#pending").hidden = pending.length === 0;
   if (pending.length) document.querySelector("#pending").innerHTML = `<div class="section-label"><span>FUTURE</span> PENDING EFFECTS</div>${pending.map(effect => `<p><strong>${effect.label}</strong> ${yen(effect.cost)} — 効果開始予定: YEAR ${Math.ceil(effect.due / 4)} Q${((effect.due - 1) % 4) + 1}</p>`).join("")}`;
-  const chain = state.eventChain ? `<p><strong>EVENT CHAIN: ${state.eventChain.label} / ${state.eventChain.step}段階目${state.eventChain.recovering ? "（回復中）" : ""}</strong> — 放置すると獲得・満足度・解約・コストへ連鎖します。</p>` : "";
-  document.querySelector("#insight").innerHTML = `<div class="section-label"><span>MODEL</span> FORMULA INSIGHT</div><p>広告 → 新規顧客 → 売上。 一方で、顧客増加 → サポート負荷 → 満足度 → 解約という副作用があります。</p>${chain}`;
   if (evaluation) renderEnding(evaluation, state);
 }
 
-function renderResult(report) {
-  const node = document.querySelector("#result");
-  node.hidden = false;
+export function scoreRating(score) {
+  if (score == null) return { label: "評価対象外", tone: "neutral" };
+  if (score >= 90) return { label: "非常に良い判断", tone: "excellent" };
+  if (score >= 70) return { label: "堅実な判断", tone: "sound" };
+  if (score >= 60) return { label: "やや危険", tone: "risky" };
+  return { label: "危険な判断", tone: "danger" };
+}
+
+const actionLabels = { PRICE_CUT: "値下げ", FREE_PLAN: "無料プランを投入", MAJOR_UPDATE: "大型アップデートを実施", BRAND_CAMPAIGN: "ブランド施策を強化", FUNDING_CAMPAIGN: "資金調達後に広告攻勢", HOLD: "方針を維持" };
+
+export function resultModalHtml(report, turnNumber = 1) {
   const score = report.decisionScore;
   const feedback = report.decisionFeedback || ["この記録は旧バージョンのため採点対象外です"];
-  const rating = score == null ? "LEGACY" : score >= 90 ? "EXCELLENT" : score >= 70 ? "SOUND" : score >= 60 ? "RISKY" : "DANGER";
-  const regimeChange = report.regimeChange?.split(" → ").map(regimeLabel).join(" → ");
-  node.innerHTML = `<div class="section-label"><span>06</span> PREVIOUS QUARTER ANALYSIS</div><div class="report-head"><div><small>MANAGEMENT DECISION SCORE</small><h2>経営判断スコア: ${score ?? "—"} / 100</h2><p>CEO信任度: ${report.ceoTrust ?? "—"} / 100</p></div><strong class="fit ${(score ?? 70) >= 70 ? "aligned" : "misaligned"}">${rating}</strong></div><ul class="decision-feedback">${feedback.map(item => `<li>${item}</li>`).join("")}</ul>${executionReportHtml(report)}<div class="report-grid"><div><span>広告・市場による獲得</span><strong>+${report.newCustomers}</strong></div><div><span>解約・事故離脱</span><strong>−${report.churned + (report.shockCustomerLoss || 0)}</strong></div><div><span>顧客数</span><strong>${report.before.customers} → ${report.customers}</strong></div><div><span>四半期利益</span><strong class="${report.profit < 0 ? "negative" : ""}">${signed(report.profit)}円</strong></div><div><span>満足度</span><strong>${report.before.satisfaction} → ${report.satisfaction}</strong></div></div>${regimeChange ? `<p class="advice"><strong>市場フェーズ変更: ${regimeChange}</strong></p>` : ""}<p class="advice"><strong>COMPETITOR SIGNAL</strong> ${report.competitorSignal}</p><p class="advice">${report.advice}</p>`;
+  const rating = scoreRating(score);
+  const execution = report.executionReport;
+  const events = [report.scenario?.title,
+    execution?.advertising && `広告施策: ${execution.advertising.reason}`,
+    execution?.development && `開発投資: ${execution.development.reason}`,
+    execution?.hiring && `採用: 予定${execution.hiring.planned}名に対して${execution.hiring.actual}名`,
+    report.projectUpdate?.completed && `プロジェクト完了: ${projectById(report.projectUpdate.id)?.name} — ${report.projectUpdate.effectLabel}`,
+    ...(execution?.shocks || []).map(item => `重大リスク: ${item}`)
+  ].filter(Boolean);
+  const competitors = (report.competitorActions || []).map(action => `${competitorLabel(action)}が${actionLabels[action.type] || action.type}`);
+  const hints = [report.competitorSignal, report.advice].filter(Boolean).slice(0, 3);
+  const year = Math.floor((turnNumber - 1) / 4) + 1;
+  const quarter = ((turnNumber - 1) % 4) + 1;
+  return `<header class="modal-result-head"><p id="result-modal-title" class="eyebrow">YEAR ${year} / Q${quarter} RESULT</p><div class="score-wrap"><small>MANAGEMENT DECISION SCORE</small><div><strong id="animated-score" class="score-number ${rating.tone}" data-score="${score ?? 0}">0</strong><span>/ 100</span></div><p class="score-rating ${rating.tone}">${rating.label}</p></div></header><div class="modal-section"><h3>主要KPI</h3><div class="modal-kpis"><div><span>顧客数</span><strong>${report.before.customers.toLocaleString()} → ${report.customers.toLocaleString()}</strong></div><div><span>四半期利益</span><strong class="${report.profit < 0 ? "negative" : ""}">${signed(report.profit)}円</strong></div><div><span>市場シェア</span><strong>${report.marketShareBefore}% → ${report.marketShareAfter}%</strong></div><div><span>CEO信任度</span><strong>${report.ceoTrust ?? "—"} / 100</strong></div><div><span>満足度</span><strong>${report.before.satisfaction} → ${report.satisfaction}</strong></div></div></div><div class="modal-columns"><section class="modal-section"><h3>今回起きたこと</h3><ul>${events.map(item => `<li>${item}</li>`).join("")}</ul>${competitors.length ? `<h4>競合の主な動き</h4><ul>${competitors.map(item => `<li>${item}</li>`).join("")}</ul>` : ""}</section><section><div class="modal-section"><h3>今回の分析</h3><ul>${feedback.slice(0, 4).map(item => `<li>${item}</li>`).join("")}</ul></div><div class="modal-section hint-section"><h3>次の四半期へのヒント</h3><ul>${hints.map(item => `<li>${item}</li>`).join("")}</ul></div></section></div>`;
+}
+
+export function resultModalActions() {
+  const closeResult = () => {
+    document.querySelector("#result-modal").hidden = true;
+    document.body.classList.remove("modal-open");
+  };
+  const openLatestResult = (report, turnNumber, replay = false) => {
+    if (!report) return;
+    const modal = document.querySelector("#result-modal");
+    document.querySelector("#result-modal-content").innerHTML = resultModalHtml(report, turnNumber);
+    document.querySelector("#continue-quarter").childNodes[0].textContent = replay ? "結果を閉じる " : report.resultType ? "最終結果へ " : "次の四半期へ ";
+    modal.hidden = false;
+    document.body.classList.add("modal-open");
+    const scoreNode = document.querySelector("#animated-score");
+    const target = Number(scoreNode.dataset.score);
+    const start = performance.now();
+    const tick = now => {
+      const progress = Math.min(1, (now - start) / 950);
+      scoreNode.textContent = Math.round(target * (1 - Math.pow(1 - progress, 3)));
+      if (progress < 1) requestAnimationFrame(tick);
+      else scoreNode.classList.add("score-complete");
+    };
+    requestAnimationFrame(tick);
+    document.querySelector("#continue-quarter").focus();
+  };
+  return { openLatestResult, closeResult };
+}
+
+export function projectModalHtml(state) {
+  return projects.map(project => {
+    const unavailable = Boolean(state.activeProject) || state.cash < project.cost || state.gameOver;
+    const reason = state.activeProject ? "別のプロジェクトが進行中" : state.cash < project.cost ? "資金不足" : state.gameOver ? "ゲーム終了" : "開始する";
+    return `<article class="project-option"><div><h3>${project.name}</h3><p>${project.description}</p><dl><div><dt>費用</dt><dd>${yen(project.cost)}</dd></div><div><dt>期間</dt><dd>${project.duration}四半期</dd></div><div><dt>効果</dt><dd>${project.effectLabel}</dd></div></dl></div><button class="secondary" data-project="${project.id}" ${unavailable ? "disabled" : ""}>${reason}</button></article>`;
+  }).join("");
+}
+
+export function projectModalActions() {
+  const closeProjects = () => {
+    document.querySelector("#project-modal").hidden = true;
+    document.body.classList.remove("modal-open");
+    document.querySelector("#project-error").textContent = "";
+  };
+  const openProjects = state => {
+    document.querySelector("#project-list").innerHTML = projectModalHtml(state);
+    document.querySelector("#project-error").textContent = "";
+    document.querySelector("#project-modal").hidden = false;
+    document.body.classList.add("modal-open");
+    document.querySelector("#close-projects").focus();
+  };
+  const showProjectError = message => { document.querySelector("#project-error").textContent = message || ""; };
+  return { openProjects, closeProjects, showProjectError };
 }
 
 export function executionReportHtml(report) {

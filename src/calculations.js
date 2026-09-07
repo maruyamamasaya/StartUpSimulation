@@ -43,7 +43,7 @@ export function calculateTurn(state, decisions, scenario, rng = Math.random, sup
   const payroll = Math.round((state.employees + execution.hiring.actual) * 55000 * 3 * business.hiringCost);
   const hiringCost = execution.hiring.actualCost;
   const scaleCost = customers >= 2500 ? 1.12 : customers >= 1000 ? 1.06 : 1;
-  const operatingCost = Math.round((180000 + customers * 70) * 3 * business.operatingCost * scaleCost * chain.operatingCost);
+  const operatingCost = Math.round((180000 + customers * 70) * 3 * business.operatingCost * scaleCost * chain.operatingCost * (state.operatingEfficiency || 1));
   const debtService = Math.round((state.emergencyDebt || 0) * .04);
   const emergencyLoan = decisions.emergencyLoan ? 2000000 : 0;
   const shockCost = execution.shocks.reduce((sum, shock) => sum + (shock.extraCost || 0), 0);

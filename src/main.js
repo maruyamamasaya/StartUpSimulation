@@ -1,15 +1,18 @@
 import { createInitialState } from "./state.js";
 import { selectScenario } from "./scenarios.js";
 import { advanceTurn, finalEvaluation } from "./turn.js";
-import { adjustDecision, bindUI, render } from "./ui.js";
+import { adjustDecision, bindUI, render, projectModalActions, resultModalActions } from "./ui.js";
 import { businesses, businessById } from "./data/businesses.js";
 import { SAVE_KEY, serializeGame, deserializeGame } from "./save.js";
 import { strategies } from "./strategy.js";
 import { strategyLabel } from "./labels.js";
+import { startProject } from "./projects.js";
 
 let state;
 let decisions;
 let selectedBusiness = null;
+const modal = resultModalActions();
+const projectModal = projectModalActions();
 
 function showSetup() {
   document.querySelector("#game").hidden = true;
@@ -25,7 +28,8 @@ function start(businessId = selectedBusiness, strategy = document.querySelector(
   state.strategy = strategy;
   state.scenario = selectScenario(state);
   decisions = { ...state.lastDecisions };
-  document.querySelector("#result").hidden = true;
+  modal.closeResult();
+  projectModal.closeProjects();
   document.querySelector("#ending").hidden = true;
   document.querySelector("#setup").hidden = true;
   document.querySelector("#game").hidden = false;
@@ -64,8 +68,24 @@ bindUI({
   onNext() {
     state = advanceTurn(state, decisions);
     decisions = { ...state.lastDecisions, hires: 0, emergencyLoan: false };
-    render(state, decisions, state.gameOver ? finalEvaluation(state) : null);
+    render(state, decisions);
     save();
+    modal.openLatestResult(state.history.at(-1), state.history.length);
+  },
+  onResultContinue() {
+    modal.closeResult();
+    if (state.gameOver) render(state, decisions, finalEvaluation(state));
+  },
+  onPreviousResult() { modal.openLatestResult(state.history.at(-1), state.history.length, true); },
+  onOpenProjects() { projectModal.openProjects(state); },
+  onCloseProjects() { projectModal.closeProjects(); },
+  onStartProject(projectId) {
+    const started = startProject(state, projectId);
+    if (started.error) { projectModal.showProjectError(started.error); return; }
+    state = started.state;
+    render(state, decisions);
+    save();
+    projectModal.closeProjects();
   },
   onRestart: showSetup
 });

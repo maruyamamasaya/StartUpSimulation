@@ -4,7 +4,15 @@
 
 ## 起動
 
-Node.js 20以上で次を実行し、`http://localhost:4173`を開きます。
+Node.js 20以上が必須です。Node.js 22 LTSを推奨します。使用中のNode.jsバージョンは次のコマンドで確認できます。
+
+```sh
+node -v
+```
+
+Node.js 16では`node --test`を利用できないため、テストを実行できません。
+
+起動するには次を実行し、`http://localhost:4173`を開きます。
 
 ```sh
 npm start

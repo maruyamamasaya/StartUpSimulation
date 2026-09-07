@@ -39,9 +39,10 @@
         </div>
 
         <div class="decision-panel card">
-          <div class="section-label"><span>05</span> YOUR DECISION</div>
+          <div class="decision-heading"><div class="section-label"><span>05</span> YOUR DECISION</div><button id="previous-result" class="text-button" hidden>前回の結果を見る</button></div>
           <div id="strategy" class="strategy"></div>
           <p class="hint">市場シグナルと会社の弱点を読み、限られた資金を配分してください。</p>
+          <div id="project-summary" class="project-summary"></div>
           <div id="controls" class="controls"></div>
           <div class="budget"><span>今四半期の予定支出</span><strong id="planned-cost"></strong></div>
           <p id="crisis" hidden><strong>CRISIS MODE</strong> — 成長投資より資金繰りを優先してください。</p>
@@ -50,14 +51,26 @@
         </div>
       </section>
 
-      <section id="result" class="result card" hidden aria-live="polite"></section>
       <section id="annual" class="result card" hidden aria-live="polite"></section>
       <section id="pending" class="result card" hidden aria-live="polite"></section>
-      <section id="insight" class="result card" aria-live="polite"></section>
       <section id="warning" class="result card warning" hidden aria-live="assertive"></section>
       <section id="ending" class="ending card" hidden aria-live="polite"></section>
       <footer><span>FORMULA COMPANY / <span id="save-status">AUTOSAVE READY</span></span><span>READ · DECIDE · LEARN</span></footer>
     </main>
+    <div id="result-modal" class="result-modal" hidden>
+      <section class="result-dialog" role="dialog" aria-modal="true" aria-labelledby="result-modal-title">
+        <div id="result-modal-content"></div>
+        <button id="continue-quarter" class="primary modal-continue">次の四半期へ <span>→</span></button>
+      </section>
+    </div>
+    <div id="project-modal" class="result-modal" hidden>
+      <section class="result-dialog project-dialog" role="dialog" aria-modal="true" aria-labelledby="project-modal-title">
+        <div class="project-modal-head"><div><p class="eyebrow">LONG-TERM INVESTMENT</p><h2 id="project-modal-title">中長期プロジェクト</h2></div><button id="close-projects" class="text-button">閉じる</button></div>
+        <p class="muted">費用は開始時に支払い、同時に進められるのは1件までです。</p>
+        <div id="project-list" class="project-list"></div>
+        <p id="project-error" class="project-error" role="alert"></p>
+      </section>
+    </div>
     <script type="module" src="src/main.js"></script>
   </body>
 </html>
