@@ -29,3 +29,7 @@ npm run check
 ## 設計文書
 
 現在の仕様は[DOMAIN.md](DOMAIN.md)、構成は[ARCHITECTURE.md](ARCHITECTURE.md)、検証方法は[TESTING.md](TESTING.md)を参照してください。
+
+## Player Guide
+
+プレイヤー向けの遊び方・ヒント・用語集は[/docs/](docs/)で開けます。

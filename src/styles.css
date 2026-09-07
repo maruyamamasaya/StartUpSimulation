@@ -7,6 +7,7 @@ body::before { content:""; position:fixed; inset:0; opacity:.035; pointer-events
 h1,h2,p { margin-top:0; } h1 { font-size:clamp(1.8rem,4vw,3.2rem); letter-spacing:-.06em; margin:3px 0 0; line-height:1; } h1 span { color:var(--lime); }
 .eyebrow,.section-label,.month small,.stat small,.control small,.report-head small { font:500 .68rem DM Mono,monospace; letter-spacing:.16em; color:var(--muted); }
 .month { text-align:right; border-left:1px solid var(--line); padding-left:28px; } .month strong { display:block; font:500 1.1rem DM Mono; margin-top:7px; }
+.guide-link { display:inline-block; margin-top:9px; color:var(--lime); font:500 .65rem DM Mono; letter-spacing:.12em; text-decoration:none; }.guide-link:hover { text-decoration:underline; }
 .card { border:1px solid var(--line); background:rgba(23,25,24,.94); }
 .scenario { min-height:210px; padding:26px 30px; display:grid; grid-template-columns:180px 1fr auto; gap:28px; align-items:start; border-top:3px solid var(--lime); position:relative; overflow:hidden; }
 .scenario::after { content:"//"; position:absolute; font:500 11rem DM Mono; color:#ffffff08; right:12%; top:-35px; }

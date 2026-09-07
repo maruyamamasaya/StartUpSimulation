@@ -8,7 +8,7 @@ const port = Number(process.env.PORT) || 4173;
 
 createServer(async (request, response) => {
   const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-  const relative = pathname === "/" ? "index.html" : pathname.slice(1);
+  const relative = pathname === "/" ? "index.html" : pathname === "/docs/" ? "docs/index.html" : pathname.slice(1);
   const file = normalize(join(root, relative));
   if (!file.startsWith(root)) {
     response.writeHead(403).end("Forbidden");
