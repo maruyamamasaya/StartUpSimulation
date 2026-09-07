@@ -1,43 +1,31 @@
-# AI-driven Development Starter
+# Formula Company
 
-AIエージェントと人間が、要件整理・設計・実装・レビュー・検証を一貫した方法で始めるための、技術スタック非依存のStarter Repositoryです。現時点ではプロジェクト固有の仕様やアプリケーションコードはありません。
+背景シナリオと会社の状態を読み、4つの経営レバーを調整して24か月を生き抜く、ローカルブラウザ向け経営シミュレーションです。運は結果を揺らしますが、状況に合った判断ほど有利な範囲から結果が選ばれます。
 
-## 含まれるもの
+## 起動
 
-- 現在地、設計、ドメイン、データ、優先順位、テスト、セキュリティの正本テンプレート
-- 重要な設計判断を残すADR領域
-- AI向けの短いworkflow、完了checklist、必要時に使うtemplate
-- Progressive Documentation（必要になった時だけ文書を増やす）のルール
+Node.js 20以上で次を実行し、`http://localhost:4173`を開きます。
 
-## 含まれないもの
+```sh
+npm start
+```
 
-実装、技術スタック、依存関係、DB migration、CI/CD、コンテナ、デプロイ設定、実装用のfrontend/backend構成は意図的に含めていません。CODEMAP、階層型AGENTS、統合verify script、sessionsも必要になるまで作りません。
+外部パッケージ、データベース、外部APIは使いません。状態はメモリ上だけにあり、リロードまたは画面内のリスタートで初期化されます。
 
-## コピー直後に行うこと
+## 遊び方
 
-1. プロジェクトの目的と対象範囲を定義する。
-2. [DOMAIN.md](DOMAIN.md)を初期化する。
-3. [ARCHITECTURE.md](ARCHITECTURE.md)を初期化する。
-4. 永続化が必要なら[DATA_MODEL.md](DATA_MODEL.md)を初期化し、不要なら`Not applicable`と記録する。
-5. [SECURITY.md](SECURITY.md)を初期化する。
-6. [ROADMAP.md](ROADMAP.md)に最初のPhaseを作る。
-7. [CURRENT.md](CURRENT.md)に現在地を記録する。
-8. 人間が内容と未決事項をレビューする。
-9. 合意後に初めて実装を始める。
+1. 市場シグナルと現在の会社状態を読む。
+2. 商品価格、広告費、採用人数、開発投資をクリックで調整する。
+3. 「次の月へ」を押し、顧客・利益・満足度と短い解説を確認する。
+4. 資金難を避けながら、24か月後の企業価値1億円を目指す。
 
-## 推奨開発フロー
+## 検証
 
-要求を明確化し、正本を確認・更新して合意を得た後、検索で変更対象を絞り、最小変更を実装します。関連する検証とレビューを行い、実装と正本を同期してください。AI向けの詳細ルールは[AGENTS.md](AGENTS.md)を参照してください。
+```sh
+npm test
+npm run check
+```
 
-## 主要ドキュメント
+## 設計文書
 
-| 文書 | 役割 |
-| --- | --- |
-| [CURRENT.md](CURRENT.md) | 現在地 |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 現在のシステム構造 |
-| [DOMAIN.md](DOMAIN.md) | 業務概念とルール |
-| [DATA_MODEL.md](DATA_MODEL.md) | 永続化モデル |
-| [ROADMAP.md](ROADMAP.md) | 開発優先順位 |
-| [TESTING.md](TESTING.md) | 検証方針 |
-| [SECURITY.md](SECURITY.md) | セキュリティ方針 |
-| [decisions/](decisions/) | 重要な設計判断 |
+現在の仕様は[DOMAIN.md](DOMAIN.md)、構成は[ARCHITECTURE.md](ARCHITECTURE.md)、検証方法は[TESTING.md](TESTING.md)を参照してください。

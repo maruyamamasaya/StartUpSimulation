@@ -1,27 +1,24 @@
 # Current
 
-この文書は現在地だけを示します。経緯はGit history、重要判断はADRへ残し、完了履歴を蓄積しません。
-
 ## Current Phase
 
-Starter / Project not initialized
+Initial playable release
 
 ## Current State
 
-プロジェクト固有情報は未初期化で、アプリケーションコードは未実装です。
+Formula Companyは依存パッケージなしのローカルWebゲームとして実装済みです。12シナリオ、4操作、24ターン、倒産・最終評価まで一連のゲームループを遊べます。
 
 ## Working
 
-- Documentation starter is available.
-
-## In Progress
-
-- None.
+- 状態依存の重み付きシナリオ選択
+- 判断適合度で範囲が変わるランダム補正
+- レスポンシブな1画面UIと月次レポート
+- Node.js標準テストランナーによるゲームロジック検証
 
 ## Known Issues
 
-- Project purpose, scope, and technology stack are undecided.
+- バランスは初期値であり、プレイテストに応じた継続調整が必要です。
 
 ## Immediate Next
 
-- コピー後、READMEの初期化手順に従い、人間のレビューを受ける。
+- 複数戦略で24か月を通したプレイテストを行い、評価分布を確認する。
