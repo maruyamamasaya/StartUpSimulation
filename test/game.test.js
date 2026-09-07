@@ -8,8 +8,13 @@ import { businesses } from "../src/data/businesses.js";
 import { serializeGame, deserializeGame } from "../src/save.js";
 import { evaluateDecision, updateCeoStatus } from "../src/decisionScore.js";
 import { chainEffects, growthRiskMultiplier, updateEventChain } from "../src/growthRisk.js";
+import { resolveExecution, executionSummary } from "../src/execution.js";
+import { advanceCompetition, competitivePressure } from "../src/competition.js";
+import { executionReportHtml } from "../src/ui.js";
 
 const scenario = id => scenarios.find(item => item.id === id);
+const rngSequence = (...values) => { let index = 0; return () => values[Math.min(index++, values.length - 1)]; };
+const stableExecution = decisions => ({ advertising: { plannedSpend: decisions.advertising, multiplier: 1, reason: "test" }, hiring: { planned: decisions.hires, actual: decisions.hires, plannedCost: decisions.hires * 160000, actualCost: decisions.hires * 160000, costMultiplier: 1, reason: "test" }, development: { plannedInvestment: decisions.development, multiplier: 1, reason: "test" }, shocks: [] });
 
 test("aligned advertising decision has a better acquisition outcome", () => {
   const state = createInitialState(() => .5);
@@ -193,4 +198,77 @@ test("an appropriate response recovers and clears an event chain", () => {
   assert.equal(recovering.step, 1);
   assert.equal(recovering.recovering, true);
   assert.equal(updateEventChain({ ...state, eventChain: recovering }, state, response, 10), null);
+});
+
+test("competitor price gaps directly affect acquisition and churn", () => {
+  const state = createInitialState("saas", () => .5); const decisions = { ...state.lastDecisions, price: state.price };
+  const cheap = state.competitors.map(item => ({ ...item, price: state.price * .45 }));
+  const expensive = state.competitors.map(item => ({ ...item, price: state.price * 1.1 }));
+  const threatened = competitivePressure(state, decisions, cheap); const comfortable = competitivePressure(state, decisions, expensive);
+  assert.ok(threatened.acquisition < comfortable.acquisition); assert.ok(threatened.churn > comfortable.churn);
+});
+
+test("competitor product, brand and share materially increase share pressure", () => {
+  const state = { ...createInitialState(() => .5), developmentLevel: 45, brand: 35 };
+  const weak = state.competitors.map(item => ({ ...item, product: 25, brand: 20, share: 10 }));
+  const dominant = state.competitors.map(item => ({ ...item, product: 90, brand: 90, share: 45 }));
+  assert.ok(competitivePressure(state, state.lastDecisions, dominant).shareLoss > competitivePressure(state, state.lastDecisions, weak).shareLoss);
+});
+
+test("targeted major competitor actions can reverse share rapidly", () => {
+  const state = { ...createInitialState(() => .5), marketShare: 24 }; const moved = advanceCompetition(state.competitors, "GROWTH", () => .99, state);
+  assert.ok(moved.reduce((sum, item, index) => sum + item.share - state.competitors[index].share, 0) >= 14); assert.ok(moved.some(item => item.lastAction.type === "FREE_PLAN"));
+});
+
+test("planned hiring can produce fewer actual hires", () => {
+  const state = createInitialState(() => .5); const decisions = { ...state.lastDecisions, hires: 5 };
+  const execution = resolveExecution(state, decisions, scenario("talent-shortage"), rngSequence(.5, .1, .5, .5, .5));
+  assert.ok(execution.hiring.actual < execution.hiring.planned);
+});
+
+test("actual hiring cost can substantially exceed plan", () => {
+  const state = createInitialState(() => .5); const decisions = { ...state.lastDecisions, hires: 4 };
+  const execution = resolveExecution(state, decisions, scenario("talent-shortage"), rngSequence(.5, .5, .99, .5, .5));
+  assert.ok(execution.hiring.actualCost > execution.hiring.plannedCost * 1.5);
+});
+
+test("advertising execution supports near-zero and near-double outcomes", () => {
+  const state = createInitialState(() => .5);
+  const low = resolveExecution(state, state.lastDecisions, scenario("ad-boom"), rngSequence(.01, .5, .5, .5, .5));
+  const high = resolveExecution(state, state.lastDecisions, scenario("ad-boom"), rngSequence(.999, .5, .5, .5, .5));
+  assert.ok(low.advertising.multiplier <= .05); assert.ok(high.advertising.multiplier >= 1.9);
+});
+
+test("development execution supports delay and exceptional success", () => {
+  const state = createInitialState(() => .5);
+  const delayed = resolveExecution(state, state.lastDecisions, scenario("quality-issue"), rngSequence(.5, .5, .5, .1, .5));
+  const success = resolveExecution(state, state.lastDecisions, scenario("quality-issue"), rngSequence(.5, .5, .5, .95, .5));
+  assert.ok(delayed.development.multiplier <= .3); assert.ok(success.development.multiplier >= 1.45);
+});
+
+test("execution randomness does not directly alter decision score", () => {
+  const state = createInitialState(() => .5); const decisions = { ...state.lastDecisions, advertising: state.advertising + 50000 };
+  const before = evaluateDecision(state, decisions, scenario("ad-boom")).score;
+  resolveExecution(state, decisions, scenario("ad-boom"), () => 0); resolveExecution(state, decisions, scenario("ad-boom"), () => .999);
+  assert.equal(evaluateDecision(state, decisions, scenario("ad-boom")).score, before);
+});
+
+test("repeating the same advertising plan reduces its efficiency", () => {
+  const state = createInitialState(() => .5); const decisions = { ...state.lastDecisions, advertising: 300000 };
+  const fresh = calculateTurn(state, decisions, scenario("ad-boom"), () => .5, stableExecution(decisions));
+  const fatigued = calculateTurn({ ...state, decisionStreaks: { ...state.decisionStreaks, advertising: 4 } }, decisions, scenario("ad-boom"), () => .5, stableExecution(decisions));
+  assert.ok(fatigued.newCustomers < fresh.newCustomers);
+});
+
+test("rapid growth can produce multiple simultaneous crises", () => {
+  const state = { ...createInitialState(() => .5), customers: 3000, marketShare: 22 };
+  const execution = resolveExecution(state, state.lastDecisions, scenario("recession"), rngSequence(.5, .5, .5, .5, 0, 0, 0, .2));
+  assert.equal(execution.shocks.length, 2);
+});
+
+test("execution report includes plans, actuals, reasons and competitor changes", () => {
+  const decisions = { price: 1200, advertising: 300000, hires: 4, development: 300000 }; const execution = stableExecution(decisions);
+  const report = { executionReport: executionSummary(execution), competitorActions: [{ name: "A COMPANY", type: "PRICE_CUT", before: { price: 850, product: 38, brand: 34, share: 31 }, after: { price: 720, product: 38, brand: 34, share: 35 } }], marketShareBefore: 23, marketShareAfter: 18 };
+  const html = executionReportHtml(report);
+  assert.match(html, /予定 4人 ／ 実績 4人/); assert.match(html, /test/); assert.match(html, /23% → 18%/); assert.match(html, /A COMPANY/);
 });

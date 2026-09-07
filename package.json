@@ -6,6 +6,6 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
-    "check": "node --check src/decisionScore.js && node --check src/growthRisk.js && node --check src/data/businesses.js && node --check src/data/balance.js && node --check src/save.js && node --check src/state.js && node --check src/scenarios.js && node --check src/random.js && node --check src/strategy.js && node --check src/competition.js && node --check src/meeting.js && node --check src/calculations.js && node --check src/turn.js && node --check src/ui.js && node --check src/main.js && node --test"
+    "check": "node --check src/decisionScore.js && node --check src/execution.js && node --check src/growthRisk.js && node --check src/data/businesses.js && node --check src/data/balance.js && node --check src/save.js && node --check src/state.js && node --check src/scenarios.js && node --check src/random.js && node --check src/strategy.js && node --check src/competition.js && node --check src/meeting.js && node --check src/calculations.js && node --check src/turn.js && node --check src/ui.js && node --check src/main.js && node --test"
   }
 }

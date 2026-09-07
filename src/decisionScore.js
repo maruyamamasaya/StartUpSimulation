@@ -22,6 +22,9 @@ export function evaluateDecision(state, decisions, scenario) {
   const planned = decisions.advertising + decisions.development * business.developmentCost + decisions.hires * 325000 * business.hiringCost;
   const load = state.customers / Math.max(1, state.employees);
   const cashRatio = planned / Math.max(500000, state.cash);
+  const cheapestCompetitor = Math.min(...state.competitors.map(item => item.price));
+  const strongestProduct = Math.max(...state.competitors.map(item => item.product));
+  const strongestBrand = Math.max(...state.competitors.map(item => item.brand));
   const feedback = [];
   let score = 100;
   if (!(adviceChecks[scenario.advice]?.(state, decisions, previous, business) ?? true)) { score -= 14; feedback.push("市場シグナルへの対応が遅れています"); }
@@ -33,8 +36,11 @@ export function evaluateDecision(state, decisions, scenario) {
   else if (decisions.development > 0 && decisions.development <= Math.max(250000, state.cash * .25)) feedback.push("開発投資は妥当でした");
   if (decisions.price < business.price * .62) { score -= 17; feedback.push("値下げが収益性とブランドを損なう水準です"); }
   if (decisions.price > business.price * 1.55 && state.marketTraits.priceSensitivity === "HIGH") { score -= 13; feedback.push("価格感応度の高い市場に対して価格が強気すぎます"); }
+  if (decisions.price > cheapestCompetitor * 1.55 && state.developmentLevel < strongestProduct && state.brand < strongestBrand) { score -= 18; feedback.push("競合との価格差を正当化する商品力・ブランド優位が不足しています"); }
   if ((state.decisionStreaks?.advertising || 0) >= 2 && decisions.advertising >= previous.advertising && decisions.advertising > state.revenue * .22) { score -= 10; feedback.push("広告の連続投入で獲得効率が低下しています"); }
   if ((state.decisionStreaks?.hiring || 0) >= 2 && decisions.hires >= 3) { score -= 12; feedback.push("急採用の継続で組織負荷と固定費が膨らんでいます"); }
+  if ((state.decisionStreaks?.priceChanges || 0) >= 2 && decisions.price !== previous.price) { score -= 9; feedback.push("頻繁な価格変更が顧客の信頼を損ねています"); }
+  if ((state.decisionStreaks?.repeatedPlan || 0) >= 2 && ["price","advertising","development"].every(key => decisions[key] === previous[key]) && decisions.hires === 0) { score -= 8; feedback.push("同じ施策の反復で市場への適応が遅れています"); }
   if (state.eventChain?.step >= 2) {
     const responses = { talent: decisions.hires > 0, organization: decisions.hires <= 1 && decisions.development > 0, product: decisions.development > 0, infrastructure: decisions.development > 0, satisfaction: decisions.development > 0 || decisions.hires > 0, reputation: decisions.development > 0 && decisions.advertising <= previous.advertising, cash: planned < state.cash * .3 || decisions.emergencyLoan, competition: decisions.development > 0 || decisions.price < previous.price };
     if (!responses[state.eventChain.id]) { score -= 12; feedback.push(`${state.eventChain.label}への対策が不十分です`); }
