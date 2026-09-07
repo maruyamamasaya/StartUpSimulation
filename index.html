@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="背景を読み、数字で会社を育てる24か月の経営シミュレーション">
+    <meta name="description" content="背景を読み、数字で会社を育てる20四半期の経営シミュレーション">
     <title>Formula Company</title>
     <link rel="stylesheet" href="src/styles.css">
   </head>
@@ -11,7 +11,7 @@
     <main class="shell">
       <header class="topbar">
         <div><p class="eyebrow">MANAGEMENT SIMULATION</p><h1>FORMULA <span>COMPANY</span></h1></div>
-        <div class="month"><small>OPERATING MONTH</small><strong id="month-label">MONTH 1 / 24</strong></div>
+        <div class="month"><small>OPERATING QUARTER</small><strong id="month-label">YEAR 1 / Q1</strong></div>
       </header>
 
       <section class="scenario card" aria-labelledby="scenario-title">
@@ -20,22 +20,33 @@
         <div class="signal"><span></span> SIGNAL DETECTED</div>
       </section>
 
+      <section class="dashboard briefings">
+        <section class="card compact"><div class="section-label"><span>02</span> MARKET & COMPETITORS</div><div id="market-board"></div></section>
+        <section class="card compact"><div class="section-label"><span>03</span> EXECUTIVE MEETING</div><div id="meeting"></div></section>
+      </section>
+
       <section class="dashboard">
         <div class="status-panel card">
-          <div class="section-heading"><div class="section-label"><span>02</span> COMPANY STATUS</div><p id="trend-label">前月比 —</p></div>
+          <div class="section-heading"><div class="section-label"><span>04</span> COMPANY STATUS</div><p id="trend-label">前期比 —</p></div>
           <div id="status-grid" class="status-grid"></div>
         </div>
 
         <div class="decision-panel card">
-          <div class="section-label"><span>03</span> YOUR DECISION</div>
-          <p class="hint">今月の市場に合わせて、4つのレバーを調整してください。</p>
+          <div class="section-label"><span>05</span> YOUR DECISION</div>
+          <div id="strategy" class="strategy"></div>
+          <p class="hint">市場シグナルと会社の弱点を読み、限られた資金を配分してください。</p>
           <div id="controls" class="controls"></div>
-          <div class="budget"><span>今月の予定支出</span><strong id="planned-cost"></strong></div>
-          <button id="next-turn" class="primary">次の月へ <span>→</span></button>
+          <div class="budget"><span>今四半期の予定支出</span><strong id="planned-cost"></strong></div>
+          <p id="crisis" hidden><strong>CRISIS MODE</strong> — 成長投資より資金繰りを優先してください。</p>
+          <button id="emergency-loan" class="secondary" hidden>緊急融資を受ける（200万円）</button>
+          <button id="next-turn" class="primary">EXECUTE QUARTER <span>→</span></button>
         </div>
       </section>
 
       <section id="result" class="result card" hidden aria-live="polite"></section>
+      <section id="annual" class="result card" hidden aria-live="polite"></section>
+      <section id="pending" class="result card" hidden aria-live="polite"></section>
+      <section id="insight" class="result card" aria-live="polite"></section>
       <section id="ending" class="ending card" hidden aria-live="polite"></section>
       <footer><span>FORMULA COMPANY / LOCAL EDITION</span><span>READ · DECIDE · LEARN</span></footer>
     </main>

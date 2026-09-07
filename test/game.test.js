@@ -36,13 +36,36 @@ test("scenario selection does not immediately repeat", () => {
   assert.notEqual(selectScenario(state, () => 0).id, "market-growth");
 });
 
-test("game ends after turn 24 and receives an evaluation", () => {
+test("game ends after 20 quarters and receives an evaluation", () => {
   let state = createInitialState(() => .5);
-  state.month = 24;
+  state.month = 20;
   state.scenario = scenario("recovery");
   state = advanceTurn(state, state.lastDecisions, () => .5);
   assert.equal(state.gameOver, true);
   assert.match(finalEvaluation(state).grade, /^[SABCD]$/);
+});
+
+test("the initial release has all 20 requested market signals", () => {
+  assert.equal(scenarios.length, 20);
+});
+
+test("development and hiring are shown as pending before their effects apply", () => {
+  let state = createInitialState(() => .5);
+  state.scenario = scenario("market-growth");
+  state = advanceTurn(state, { price: 1200, advertising: 100000, hires: 2, development: 300000 }, () => .5);
+  assert.equal(state.pendingEffects.length, 2);
+  assert.equal(state.pendingEffects[0].due, 3);
+});
+
+test("market regime and competitors progress with the company", () => {
+  let state = createInitialState(() => .8);
+  state.month = 5;
+  state.regime = "INTRODUCTION";
+  state.scenario = scenario("recovery");
+  state = advanceTurn(state, state.lastDecisions, () => .9);
+  assert.equal(state.regime, "GROWTH");
+  assert.equal(state.competitors.length, 3);
+  assert.ok(state.totalMarket > 0);
 });
 
 test("bankruptcy requires sustained or severe cash trouble", () => {
@@ -53,7 +76,7 @@ test("bankruptcy requires sustained or severe cash trouble", () => {
 });
 
 test("a single modest deficit does not immediately end the game", () => {
-  let state = { ...createInitialState(() => .5), cash: -1200000, dangerMonths: 0, scenario: scenario("recession") };
+  let state = { ...createInitialState(() => .5), cash: -2000000, dangerMonths: 0, scenario: scenario("recession") };
   state = advanceTurn(state, { price: 1200, advertising: 0, hires: 0, development: 0 }, () => .5);
   assert.equal(state.gameOver, false);
   assert.equal(state.dangerMonths, 1);

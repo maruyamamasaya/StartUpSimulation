@@ -17,9 +17,11 @@ function start() {
 
 bindUI({
   onAdjust(key, direction) { decisions = adjustDecision(decisions, key, direction); render(state, decisions); },
+  onLoan() { decisions = { ...decisions, emergencyLoan: true }; render(state, decisions); },
+  onStrategy(strategy) { if (state.month === 1) { state = { ...state, strategy }; render(state, decisions); } },
   onNext() {
     state = advanceTurn(state, decisions);
-    decisions = { ...state.lastDecisions, hires: 0 };
+    decisions = { ...state.lastDecisions, hires: 0, emergencyLoan: false };
     render(state, decisions, state.gameOver ? finalEvaluation(state) : null);
   },
   onRestart: start
