@@ -1,24 +1,36 @@
+import { createCompetitors } from "./competition.js";
+import { businessById } from "./data/businesses.js";
+
 export const LIMITS = {
-  price: { min: 500, max: 2500, step: 100 }, advertising: { min: 0, max: 600000, step: 50000 },
-  hires: { min: 0, max: 8, step: 1 }, development: { min: 0, max: 600000, step: 50000 }
+  price: { min: 200, max: 120000, step: 100 }, advertising: { min: 0, max: 1200000, step: 50000 },
+  hires: { min: 0, max: 12, step: 1 }, development: { min: 0, max: 1500000, step: 50000 }
 };
 
-export function createInitialState(rng = Math.random) {
-  const customers = 760 + Math.floor(rng() * 121);
-  const cash = 3600000 + Math.floor(rng() * 500001);
-  const price = 1200;
+export function createInitialState(businessId = "saas", rng = Math.random) {
+  if (typeof businessId === "function") { rng = businessId; businessId = "saas"; }
+  const business = businessById(businessId);
+  const customers = Math.round(business.customers * (.92 + rng() * .16));
+  const cash = Math.round(business.initialCash * (.94 + rng() * .12));
+  const price = business.price;
+  const advertising = Math.round(business.initialCash * .025);
+  const development = Math.round(business.initialCash * .035);
   return {
-    month: 1, maxMonths: 20, cash, customers, revenue: customers * price * 3, profit: 0,
-    price, advertising: 100000, employees: 8, developmentLevel: 42,
+    saveVersion: 1, runSeed: Math.floor(rng() * 2147483647), businessId: business.id, initialCustomers: customers,
+    month: 1, maxMonths: 20, cash, customers, revenue: customers * price * 3 * business.revenue, profit: 0,
+    price, advertising, employees: business.employees, developmentLevel: 42,
     satisfaction: 67, churnRate: .045, brand: 28, scenario: null, strategy: "growth",
-    regime: "INTRODUCTION", totalMarket: 5000 + Math.floor(rng() * 1501), marketShare: 22,
-    competitors: createCompetitors(), pendingEffects: [], eventChain: null, chainStep: 0,
+    regime: "INTRODUCTION", totalMarket: Math.round(business.marketSize * (.92 + rng() * .16)), marketShare: Math.round(customers / business.marketSize * 1000) / 10,
+    competitors: createCompetitors(), pendingEffects: [], eventChain: null, ceoTrust: 70, lowScoreStreak: 0,
+    decisionStreaks: { advertising: 0, discount: 0, hiring: 0, development: 0 },
     marketTraits: { priceSensitivity: rng() > .5 ? "HIGH" : "BALANCED", techChange: rng() > .5 ? "FAST" : "STEADY", loyalty: rng() > .5 ? "LOW" : "HIGH" },
+    warning: null, warningCount: 0, crisisTurns: 0, leaderTurns: 0, resultType: null,
     monthsWithoutDevelopment: 0, dangerMonths: 0, emergencyDebt: 0, gameOver: false, history: [],
-    lastDecisions: { price, advertising: 100000, hires: 0, development: 150000, emergencyLoan: false }
+    lastDecisions: { price, advertising, hires: 0, development, emergencyLoan: false }
   };
 }
 
 export const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-export const companyValue = s => Math.round(s.cash + s.customers * (12000 + s.satisfaction * 180) + s.brand * 180000);
-import { createCompetitors } from "./competition.js";
+export const companyValue = state => {
+  const business = businessById(state.businessId);
+  return Math.round(state.cash + state.customers * (12000 + state.satisfaction * 180) * business.customerValue + state.brand * 180000 * business.brand);
+};

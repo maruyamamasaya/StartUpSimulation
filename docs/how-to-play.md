@@ -1,6 +1,6 @@
 # 遊び方
 
-1ターンは1四半期（3か月）。**5 YEARS / 20 QUARTERS**を経営します。
+最初に10種類から事業を選び、経営戦略を決めます。1ターンは1四半期（3か月）。**5 YEARS / 20 QUARTERS**を経営します。
 
 ```
 MARKET SIGNAL → 市場と競合 → EXECUTIVE MEETING

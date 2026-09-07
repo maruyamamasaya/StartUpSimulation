@@ -1,3 +1,5 @@
+import { growthRiskMultiplier } from "./growthRisk.js";
+
 const base = { market: 1, ad: 1, churn: 1, hiring: 1, development: 1, priceSensitivity: 1, satisfaction: 0, brand: 0 };
 
 export const scenarios = [
@@ -25,7 +27,17 @@ export const scenarios = [
 
 export function selectScenario(state, rng = Math.random) {
   const candidates = scenarios.filter(s => s.id !== state.scenario?.id);
-  const weights = candidates.map(s => Math.max(.1, s.weight(state)));
+  const industryFocus = {
+    saas: ["competitor-update","quality-issue","talent-shortage"], ec: ["ad-boom","price-war","cost-increase","word-of-mouth"],
+    mobile: ["ad-boom","word-of-mouth","competitor-update"], restaurant: ["employee-overload","cost-increase","word-of-mouth","recession"],
+    manufacturing: ["quality-issue","cost-increase","talent-shortage"], consulting: ["talent-shortage","hiring-tailwind","key-account"],
+    game: ["competitor-update","quality-issue","word-of-mouth"], fintech: ["quality-issue","social-backlash","big-company-entry"],
+    education: ["word-of-mouth","employee-overload","quality-issue"], marketplace: ["market-growth","big-company-entry","competitor-update"]
+  };
+  const focused = industryFocus[state.businessId] || [];
+  const riskIds = new Set(["support-strain","employee-overload","quality-issue","cost-increase","big-company-entry","social-backlash","talent-shortage"]);
+  const growthRisk = growthRiskMultiplier(state);
+  const weights = candidates.map(s => Math.max(.1, s.weight(state) * (focused.includes(s.id) ? 1.65 : 1) * (riskIds.has(s.id) ? growthRisk : 1)));
   let cursor = rng() * weights.reduce((sum, value) => sum + value, 0);
   return candidates.find((_, index) => (cursor -= weights[index]) <= 0) ?? candidates.at(-1);
 }

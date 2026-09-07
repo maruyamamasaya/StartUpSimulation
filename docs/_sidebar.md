@@ -1,5 +1,6 @@
 - [はじめに](README.md)
 - 基本
+  - [事業を選ぶ](business-selection.md)
   - [遊び方](how-to-play.md)
   - [画面の見方](screen-guide.md)
 - 市場
@@ -14,6 +15,9 @@
 - 困ったとき
   - [CRISIS MODE](crisis-mode.md)
   - [年次レビュー](annual-report.md)
+  - [GAME OVER](game-over.md)
+  - [成功ルート](success.md)
+  - [セーブとCONTINUE](save.md)
   - [ヒント集](tips.md)
   - [攻略のカギ](strategy-guide.md)
 - [用語集](glossary.md)

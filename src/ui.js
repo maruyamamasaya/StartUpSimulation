@@ -1,6 +1,8 @@
 import { companyValue, LIMITS } from "./state.js";
 import { strategies } from "./strategy.js";
 import { executiveMeeting } from "./meeting.js";
+import { businessById } from "./data/businesses.js";
+import { balance } from "./data/balance.js";
 
 const yen = value => `${Math.round(value).toLocaleString("ja-JP")}円`;
 const signed = value => `${value >= 0 ? "+" : ""}${Math.round(value).toLocaleString("ja-JP")}`;
@@ -21,9 +23,11 @@ export function bindUI(actions) {
 }
 
 export function render(state, decisions, evaluation = null) {
+  const business = businessById(state.businessId);
   const quarter = ((Math.min(state.month, 20) - 1) % 4) + 1;
   const year = Math.ceil(Math.min(state.month, 20) / 4);
   document.querySelector("#month-label").textContent = `YEAR ${year} / Q${quarter}`;
+  document.querySelector("#business-label").textContent = `${business.name} / ${state.strategy.toUpperCase()}`;
   document.querySelector("#scenario-category").textContent = state.gameOver ? "FINAL REPORT" : state.scenario.category;
   document.querySelector("#scenario-title").textContent = state.gameOver ? "5年間の経営結果" : state.scenario.title;
   document.querySelector("#scenario-description").textContent = state.gameOver ? "積み重ねた判断が、会社の現在地を作りました。" : state.scenario.description;
@@ -33,17 +37,21 @@ export function render(state, decisions, evaluation = null) {
     ["所持金", yen(state.cash), "CASH"], ["顧客数", `${state.customers.toLocaleString()}人`, "CUSTOMERS"],
     ["四半期売上", yen(state.revenue), "REVENUE"], ["四半期利益", yen(state.profit), "PROFIT"],
     ["顧客満足度", `${state.satisfaction} / 100`, "SATISFACTION"], ["従業員数", `${state.employees}人`, "TEAM"],
-    ["ブランド力", `${state.brand} / 100`, "BRAND"], ["開発レベル", `${state.developmentLevel} / 100`, "PRODUCT"]
+    ["ブランド力", `${state.brand} / 100`, "BRAND"], ["開発レベル", `${state.developmentLevel} / 100`, "PRODUCT"],
+    ["CEO信任度", `${state.ceoTrust ?? 70} / 100`, "BOARD TRUST"]
   ];
   if (state.customers >= 900) cards.push(["市場シェア", `${state.marketShare}%`, "SHARE"], ["解約率", `${(state.churnRate * 100).toFixed(1)}%`, "CHURN"], ["CAC", yen(decisions.advertising / Math.max(1, state.history.at(-1)?.newCustomers || 1)), "CAC"]);
   document.querySelector("#status-grid").innerHTML = cards.map(([label, value, code]) => `<div class="stat"><small>${code}</small><span>${label}</span><strong class="${value.startsWith("-") ? "negative" : ""}">${value}</strong></div>`).join("");
   document.querySelector("#controls").innerHTML = controlDefinitions.map(([key, label, code, format]) => `<div class="control"><div><small>${code}</small><label>${label}</label></div><div class="stepper"><button data-key="${key}" data-direction="-1" aria-label="${label}を減らす">−</button><output>${format(decisions[key])}</output><button data-key="${key}" data-direction="1" aria-label="${label}を増やす">＋</button></div></div>`).join("");
   document.querySelector("#strategy").innerHTML = Object.entries(strategies).map(([id, strategy]) => `<button data-strategy="${id}" class="${state.strategy === id ? "selected" : ""}" title="${strategy.description}">${strategy.label}</button>`).join("");
   document.querySelector("#planned-cost").textContent = yen(decisions.advertising + decisions.development + decisions.hires * 160000);
-  const crisis = state.cash < 2500000;
+  const crisis = state.cash < balance.crisisThreshold;
   document.querySelector("#crisis").hidden = !crisis;
   document.querySelector("#emergency-loan").hidden = !crisis;
   document.querySelector("#next-turn").disabled = state.gameOver;
+  const warning = document.querySelector("#warning");
+  warning.hidden = !state.warning;
+  if (state.warning) warning.innerHTML = `<div class="section-label"><span>SURVIVAL</span> BOARD WARNING</div><h2>${state.warning.type}</h2><p>${state.warning.message}</p><p>次の四半期は、立て直しの重要な機会です。</p>`;
   if (state.history.length) renderResult(state.history.at(-1));
   const report = state.history.at(-1);
   document.querySelector("#annual").hidden = !(report && state.month > 1 && (state.month - 1) % 4 === 0);
@@ -51,7 +59,7 @@ export function render(state, decisions, evaluation = null) {
   const pending = state.pendingEffects || [];
   document.querySelector("#pending").hidden = pending.length === 0;
   if (pending.length) document.querySelector("#pending").innerHTML = `<div class="section-label"><span>FUTURE</span> PENDING EFFECTS</div>${pending.map(effect => `<p><strong>${effect.label}</strong> ${yen(effect.cost)} — 効果開始予定: YEAR ${Math.ceil(effect.due / 4)} Q${((effect.due - 1) % 4) + 1}</p>`).join("")}`;
-  const chain = state.eventChain ? `<p><strong>EVENT CHAIN: ${state.eventChain.label} / ${state.eventChain.step}段階目</strong> — 早めの投資で連鎖を弱められます。</p>` : "";
+  const chain = state.eventChain ? `<p><strong>EVENT CHAIN: ${state.eventChain.label} / ${state.eventChain.step}段階目${state.eventChain.recovering ? "（回復中）" : ""}</strong> — 放置すると獲得・満足度・解約・コストへ連鎖します。</p>` : "";
   document.querySelector("#insight").innerHTML = `<div class="section-label"><span>MODEL</span> FORMULA INSIGHT</div><p>広告 → 新規顧客 → 売上。 一方で、顧客増加 → サポート負荷 → 満足度 → 解約という副作用があります。</p>${chain}`;
   if (evaluation) renderEnding(evaluation, state);
 }
@@ -59,13 +67,17 @@ export function render(state, decisions, evaluation = null) {
 function renderResult(report) {
   const node = document.querySelector("#result");
   node.hidden = false;
-  node.innerHTML = `<div class="section-label"><span>06</span> PREVIOUS QUARTER ANALYSIS</div><div class="report-head"><div><small>DECISION FIT</small><h2>${report.quality === "aligned" ? "判断が状況と噛み合いました" : "次の配分を見直す余地があります"}</h2></div><strong class="fit ${report.quality}">${report.quality === "aligned" ? "GOOD FIT" : "REVIEW"}</strong></div><div class="report-grid"><div><span>広告・市場による獲得</span><strong>+${report.newCustomers}</strong></div><div><span>解約</span><strong>−${report.churned}</strong></div><div><span>顧客数</span><strong>${report.before.customers} → ${report.customers}</strong></div><div><span>四半期利益</span><strong class="${report.profit < 0 ? "negative" : ""}">${signed(report.profit)}円</strong></div><div><span>満足度</span><strong>${report.before.satisfaction} → ${report.satisfaction}</strong></div></div>${report.regimeChange ? `<p class="advice"><strong>MARKET REGIME CHANGE: ${report.regimeChange}</strong></p>` : ""}<p class="advice"><strong>COMPETITOR SIGNAL</strong> ${report.competitorSignal}</p><p class="advice">${report.advice}</p>`;
+  const score = report.decisionScore;
+  const feedback = report.decisionFeedback || ["この記録は旧バージョンのため採点対象外です"];
+  const rating = score == null ? "LEGACY" : score >= 90 ? "EXCELLENT" : score >= 70 ? "SOUND" : score >= 60 ? "RISKY" : "DANGER";
+  node.innerHTML = `<div class="section-label"><span>06</span> PREVIOUS QUARTER ANALYSIS</div><div class="report-head"><div><small>MANAGEMENT DECISION SCORE</small><h2>経営判断スコア: ${score ?? "—"} / 100</h2><p>CEO信任度: ${report.ceoTrust ?? "—"} / 100</p></div><strong class="fit ${(score ?? 70) >= 70 ? "aligned" : "misaligned"}">${rating}</strong></div><ul class="decision-feedback">${feedback.map(item => `<li>${item}</li>`).join("")}</ul><div class="report-grid"><div><span>広告・市場による獲得</span><strong>+${report.newCustomers}</strong></div><div><span>解約</span><strong>−${report.churned}</strong></div><div><span>顧客数</span><strong>${report.before.customers} → ${report.customers}</strong></div><div><span>四半期利益</span><strong class="${report.profit < 0 ? "negative" : ""}">${signed(report.profit)}円</strong></div><div><span>満足度</span><strong>${report.before.satisfaction} → ${report.satisfaction}</strong></div></div>${report.regimeChange ? `<p class="advice"><strong>MARKET REGIME CHANGE: ${report.regimeChange}</strong></p>` : ""}<p class="advice"><strong>COMPETITOR SIGNAL</strong> ${report.competitorSignal}</p><p class="advice">${report.advice}</p>`;
 }
 
 function renderEnding(evaluation, state) {
   const node = document.querySelector("#ending");
   node.hidden = false;
-  node.innerHTML = `<div class="grade">${evaluation.grade}</div><div><p class="eyebrow">FINAL EVALUATION</p><h2>${evaluation.label}</h2><p>最終企業価値 <strong>${yen(evaluation.value)}</strong> ／ 最終利益 <strong>${yen(state.profit)}</strong></p><button class="secondary">もう一度経営する</button></div>`;
+  const analysis = evaluation.analysis || {};
+  node.innerHTML = `<div class="grade">${evaluation.grade}</div><div><p class="eyebrow">FINAL MANAGEMENT REPORT</p><h2>${evaluation.result || "RESULT"}</h2><p>${evaluation.label}</p><p>最終企業価値 <strong>${yen(evaluation.value)}</strong> ／ 市場シェア <strong>${state.marketShare}%</strong> ／ 生存年数 <strong>${analysis.years || 0}年</strong></p><p>BEST DECISION <strong>${analysis.best || "—"}</strong> ／ WORST DECISION <strong>${analysis.worst || "—"}</strong> ／ TURNING POINT <strong>${analysis.turningPoint || "—"}</strong></p><button class="secondary">NEW COMPANY</button></div>`;
   node.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 

@@ -8,9 +8,16 @@
     <link rel="stylesheet" href="src/styles.css">
   </head>
   <body>
-    <main class="shell">
+    <section id="setup" class="setup shell">
+      <p class="eyebrow">MANAGEMENT SIMULATION</p><h1>FORMULA <span>COMPANY</span></h1>
+      <div class="setup-head"><div><p class="eyebrow">START NEW COMPANY</p><h2>どんな事業を始めますか？</h2></div><button id="continue" class="secondary" disabled>CONTINUE</button></div>
+      <div id="businesses" class="business-grid"></div>
+      <section id="business-profile" class="card business-profile" hidden></section>
+      <div class="setup-actions"><label>経営戦略 <select id="initial-strategy"><option value="growth">GROWTH</option><option value="profit">PROFIT</option><option value="premium">PREMIUM</option><option value="product">PRODUCT</option><option value="brand">BRAND</option></select></label><button id="start-company" class="primary" disabled>START COMPANY <span>→</span></button></div>
+    </section>
+    <main id="game" class="shell" hidden>
       <header class="topbar">
-        <div><p class="eyebrow">MANAGEMENT SIMULATION</p><h1>FORMULA <span>COMPANY</span></h1></div>
+        <div><p class="eyebrow" id="business-label">MANAGEMENT SIMULATION</p><h1>FORMULA <span>COMPANY</span></h1></div>
         <div class="month"><small>OPERATING QUARTER</small><strong id="month-label">YEAR 1 / Q1</strong><a class="guide-link" href="/docs/" target="_blank" rel="noopener">GUIDE ↗</a></div>
       </header>
 
@@ -47,8 +54,9 @@
       <section id="annual" class="result card" hidden aria-live="polite"></section>
       <section id="pending" class="result card" hidden aria-live="polite"></section>
       <section id="insight" class="result card" aria-live="polite"></section>
+      <section id="warning" class="result card warning" hidden aria-live="assertive"></section>
       <section id="ending" class="ending card" hidden aria-live="polite"></section>
-      <footer><span>FORMULA COMPANY / LOCAL EDITION</span><span>READ · DECIDE · LEARN</span></footer>
+      <footer><span>FORMULA COMPANY / <span id="save-status">AUTOSAVE READY</span></span><span>READ · DECIDE · LEARN</span></footer>
     </main>
     <script type="module" src="src/main.js"></script>
   </body>
