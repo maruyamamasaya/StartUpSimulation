@@ -11,6 +11,7 @@ import { chainEffects, growthRiskMultiplier, updateEventChain } from "../src/gro
 import { resolveExecution, executionSummary } from "../src/execution.js";
 import { advanceCompetition, competitivePressure } from "../src/competition.js";
 import { executionReportHtml } from "../src/ui.js";
+import { competitorLabel, competitorTypeLabel, regimeLabel, strategyLabel } from "../src/labels.js";
 
 const scenario = id => scenarios.find(item => item.id === id);
 const rngSequence = (...values) => { let index = 0; return () => values[Math.min(index++, values.length - 1)]; };
@@ -268,7 +269,17 @@ test("rapid growth can produce multiple simultaneous crises", () => {
 
 test("execution report includes plans, actuals, reasons and competitor changes", () => {
   const decisions = { price: 1200, advertising: 300000, hires: 4, development: 300000 }; const execution = stableExecution(decisions);
-  const report = { executionReport: executionSummary(execution), competitorActions: [{ name: "A COMPANY", type: "PRICE_CUT", before: { price: 850, product: 38, brand: 34, share: 31 }, after: { price: 720, product: 38, brand: 34, share: 35 } }], marketShareBefore: 23, marketShareAfter: 18 };
+  const report = { executionReport: executionSummary(execution), competitorActions: [{ id: "A", name: "A COMPANY", type: "PRICE_CUT", before: { price: 850, product: 38, brand: 34, share: 31 }, after: { price: 720, product: 38, brand: 34, share: 35 } }], marketShareBefore: 23, marketShareAfter: 18 };
   const html = executionReportHtml(report);
-  assert.match(html, /予定 4人 ／ 実績 4人/); assert.match(html, /test/); assert.match(html, /23% → 18%/); assert.match(html, /A COMPANY/);
+  assert.match(html, /予定 4人 ／ 実績 4人/); assert.match(html, /test/); assert.match(html, /23% → 18%/); assert.match(html, /A社/);
+});
+
+test("UI labels translate regimes, competitor types and strategies without changing internal values", () => {
+  assert.equal(regimeLabel("INTRODUCTION"), "導入期");
+  assert.equal(regimeLabel("DECLINE"), "衰退期");
+  assert.equal(competitorTypeLabel("LOW COST"), "低価格型");
+  assert.equal(competitorTypeLabel("PRODUCT"), "商品力重視");
+  assert.equal(strategyLabel("GROWTH"), "成長重視");
+  assert.equal(strategyLabel("product"), "商品重視");
+  assert.equal(competitorLabel({ id: "B", name: "B COMPANY" }), "B社");
 });

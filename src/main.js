@@ -4,6 +4,8 @@ import { advanceTurn, finalEvaluation } from "./turn.js";
 import { adjustDecision, bindUI, render } from "./ui.js";
 import { businesses, businessById } from "./data/businesses.js";
 import { SAVE_KEY, serializeGame, deserializeGame } from "./save.js";
+import { strategies } from "./strategy.js";
+import { strategyLabel } from "./labels.js";
 
 let state;
 let decisions;
@@ -15,6 +17,7 @@ function showSetup() {
   const saved = localStorage.getItem(SAVE_KEY);
   document.querySelector("#continue").disabled = !saved;
   document.querySelector("#businesses").innerHTML = businesses.map(business => `<button data-business="${business.id}"><strong>${business.name}</strong><span>${business.description}</span></button>`).join("");
+  document.querySelector("#initial-strategy").innerHTML = Object.keys(strategies).map(id => `<option value="${id}">${strategyLabel(id)}</option>`).join("");
 }
 
 function start(businessId = selectedBusiness, strategy = document.querySelector("#initial-strategy").value) {
