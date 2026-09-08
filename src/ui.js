@@ -13,7 +13,15 @@ const controlDefinitions = [
   ["hires", "採用人数", "HIRING", value => `${value}人`], ["development", "開発投資", "DEVELOPMENT", yen]
 ];
 
+const mobileMedia = globalThis.matchMedia?.("(max-width: 800px)") || { matches: false, addEventListener() {} };
+
+function syncMobileDisclosures() {
+  document.querySelectorAll(".mobile-disclosure").forEach(disclosure => { disclosure.open = !mobileMedia.matches; });
+}
+
 export function bindUI(actions) {
+  syncMobileDisclosures();
+  mobileMedia.addEventListener("change", syncMobileDisclosures);
   document.querySelector("#next-turn").addEventListener("click", actions.onNext);
   document.querySelector("#emergency-loan").addEventListener("click", actions.onLoan);
   document.querySelector("#strategy").addEventListener("click", event => { const button = event.target.closest("button[data-strategy]"); if (button) actions.onStrategy(button.dataset.strategy); });
@@ -47,6 +55,7 @@ export function render(state, decisions, evaluation = null) {
     ["ブランド力", `${state.brand} / 100`, "BRAND"], ["開発レベル", `${state.developmentLevel} / 100`, "PRODUCT"],
     ["CEO信任度", `${state.ceoTrust ?? 70} / 100`, "BOARD TRUST"]
   ];
+  document.querySelector("#mobile-kpis").innerHTML = cards.slice(0, 4).map(([label, value, code]) => `<div><small>${code}</small><span>${label}</span><strong class="${value.startsWith("-") ? "negative" : ""}">${value}</strong></div>`).join("");
   if (state.customers >= 900) cards.push(["市場シェア", `${state.marketShare}%`, "SHARE"], ["解約率", `${(state.churnRate * 100).toFixed(1)}%`, "CHURN"], ["CAC", yen(decisions.advertising / Math.max(1, state.history.at(-1)?.newCustomers || 1)), "CAC"]);
   document.querySelector("#status-grid").innerHTML = cards.map(([label, value, code]) => `<div class="stat"><small>${code}</small><span>${label}</span><strong class="${value.startsWith("-") ? "negative" : ""}">${value}</strong></div>`).join("");
   document.querySelector("#controls").innerHTML = controlDefinitions.map(([key, label, code, format]) => `<div class="control"><div><small>${code}</small><label>${label}</label></div><div class="stepper"><button data-key="${key}" data-direction="-1" aria-label="${label}を減らす">−</button><output>${format(decisions[key])}</output><button data-key="${key}" data-direction="1" aria-label="${label}を増やす">＋</button></div></div>`).join("");
@@ -100,7 +109,7 @@ export function resultModalHtml(report, turnNumber = 1) {
   const hints = [report.competitorSignal, report.advice].filter(Boolean).slice(0, 3);
   const year = Math.floor((turnNumber - 1) / 4) + 1;
   const quarter = ((turnNumber - 1) % 4) + 1;
-  return `<header class="modal-result-head"><p id="result-modal-title" class="eyebrow">YEAR ${year} / Q${quarter} RESULT</p><div class="score-wrap"><small>MANAGEMENT DECISION SCORE</small><div><strong id="animated-score" class="score-number ${rating.tone}" data-score="${score ?? 0}">0</strong><span>/ 100</span></div><p class="score-rating ${rating.tone}">${rating.label}</p></div></header><div class="modal-section"><h3>主要KPI</h3><div class="modal-kpis"><div><span>顧客数</span><strong>${report.before.customers.toLocaleString()} → ${report.customers.toLocaleString()}</strong></div><div><span>四半期利益</span><strong class="${report.profit < 0 ? "negative" : ""}">${signed(report.profit)}円</strong></div><div><span>市場シェア</span><strong>${report.marketShareBefore}% → ${report.marketShareAfter}%</strong></div><div><span>CEO信任度</span><strong>${report.ceoTrust ?? "—"} / 100</strong></div><div><span>満足度</span><strong>${report.before.satisfaction} → ${report.satisfaction}</strong></div></div></div><div class="modal-columns"><section class="modal-section"><h3>今回起きたこと</h3><ul>${events.map(item => `<li>${item}</li>`).join("")}</ul>${competitors.length ? `<h4>競合の主な動き</h4><ul>${competitors.map(item => `<li>${item}</li>`).join("")}</ul>` : ""}</section><section><div class="modal-section"><h3>今回の分析</h3><ul>${feedback.slice(0, 4).map(item => `<li>${item}</li>`).join("")}</ul></div><div class="modal-section hint-section"><h3>次の四半期へのヒント</h3><ul>${hints.map(item => `<li>${item}</li>`).join("")}</ul></div></section></div>`;
+  return `<header class="modal-result-head"><p id="result-modal-title" class="eyebrow">YEAR ${year} / Q${quarter} RESULT</p><div class="score-wrap"><small>MANAGEMENT DECISION SCORE</small><div><strong id="animated-score" class="score-number ${rating.tone}" data-score="${score ?? 0}">0</strong><span>/ 100</span></div><p class="score-rating ${rating.tone}">${rating.label}</p></div></header><div class="modal-section"><h3>主要KPI</h3><div class="modal-kpis"><div><span>顧客数</span><strong>${report.before.customers.toLocaleString()} → ${report.customers.toLocaleString()}</strong></div><div><span>四半期利益</span><strong class="${report.profit < 0 ? "negative" : ""}">${signed(report.profit)}円</strong></div><div><span>市場シェア</span><strong>${report.marketShareBefore}% → ${report.marketShareAfter}%</strong></div><div><span>CEO信任度</span><strong>${report.ceoTrust ?? "—"} / 100</strong></div><div><span>満足度</span><strong>${report.before.satisfaction} → ${report.satisfaction}</strong></div></div></div><section class="modal-section"><h3>今回起きたこと</h3><ul>${events.map(item => `<li>${item}</li>`).join("")}</ul></section><div class="modal-section hint-section"><h3>次の四半期へのヒント</h3><ul>${hints.map(item => `<li>${item}</li>`).join("")}</ul></div><details class="modal-details" open><summary>詳細な分析と競合の動き</summary><div class="modal-columns"><section class="modal-section"><h3>今回の分析</h3><ul>${feedback.slice(0, 4).map(item => `<li>${item}</li>`).join("")}</ul></section>${competitors.length ? `<section class="modal-section"><h3>競合の主な動き</h3><ul>${competitors.map(item => `<li>${item}</li>`).join("")}</ul></section>` : ""}</div></details>`;
 }
 
 export function resultModalActions() {
@@ -112,6 +121,7 @@ export function resultModalActions() {
     if (!report) return;
     const modal = document.querySelector("#result-modal");
     document.querySelector("#result-modal-content").innerHTML = resultModalHtml(report, turnNumber);
+    document.querySelector(".modal-details").open = !mobileMedia.matches;
     document.querySelector("#continue-quarter").childNodes[0].textContent = replay ? "結果を閉じる " : report.resultType ? "最終結果へ " : "次の四半期へ ";
     modal.hidden = false;
     document.body.classList.add("modal-open");

@@ -28,6 +28,7 @@
 - `data/projects.js` / `projects.js`: 中長期プロジェクト定義、開始、四半期進行、完了効果
 - `save.js`: バージョン付きセーブデータの直列化・検証
 - `ui.js` / `main.js`: DOM描画、入力、アプリケーション結線
+- `index.html` / `styles.css`: PC向け構造を維持しつつ、800px以下で情報順序、主要KPI、補助情報の折りたたみ、固定操作を切り替えるレスポンシブUI
 
 ## Data Flow
 
