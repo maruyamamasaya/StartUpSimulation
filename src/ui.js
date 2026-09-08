@@ -22,7 +22,15 @@ function syncMobileDisclosures() {
 function closeMobileOverlay(selector) {
   document.querySelector(selector).hidden = true;
   document.body.classList.remove("mobile-overlay-open");
-  document.querySelector("#hud-menu").setAttribute("aria-expanded", "false");
+}
+
+function selectHudPage(page) {
+  document.querySelectorAll("[data-hud-page]").forEach(panel => { panel.hidden = panel.dataset.hudPage !== page; });
+  document.querySelectorAll("[data-hud-tab]").forEach(button => {
+    const active = button.dataset.hudTab === page;
+    button.classList.toggle("active", active);
+    if (active) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current");
+  });
 }
 
 function openMobileInfo(title, html) {
@@ -50,16 +58,13 @@ export function bindUI(actions) {
   document.querySelector("#hud-strategy").addEventListener("change", event => actions.onStrategy(event.target.value));
   document.querySelector("#hud-next-turn").addEventListener("click", actions.onNext);
   document.querySelector("#hud-emergency-loan").addEventListener("click", actions.onLoan);
-  document.querySelector("#hud-menu").addEventListener("click", () => {
-    document.querySelector("#mobile-menu-modal").hidden = false;
-    document.body.classList.add("mobile-overlay-open");
-    document.querySelector("#hud-menu").setAttribute("aria-expanded", "true");
-    document.querySelector("#close-mobile-menu").focus();
+  document.querySelector(".hud-bottom-nav").addEventListener("click", event => {
+    const tab = event.target.closest("[data-hud-tab]");
+    if (tab) selectHudPage(tab.dataset.hudTab);
   });
   document.querySelector("#close-mobile-menu").addEventListener("click", () => closeMobileOverlay("#mobile-menu-modal"));
   document.querySelector("#close-mobile-info").addEventListener("click", () => closeMobileOverlay("#mobile-info-modal"));
-  document.querySelector("#hud-signal-detail").addEventListener("click", () => openMobileInfo("MARKET SIGNAL", document.querySelector(".scenario-copy").innerHTML));
-  document.querySelector("#mobile-menu-modal nav").addEventListener("click", event => {
+  const handleMobileMenuAction = event => {
     const panel = event.target.closest("[data-mobile-panel]");
     const action = event.target.closest("[data-mobile-action]");
     if (panel) {
@@ -74,7 +79,9 @@ export function bindUI(actions) {
       if (action.dataset.mobileAction === "projects") actions.onOpenProjects();
       if (action.dataset.mobileAction === "result") actions.onPreviousResult();
     }
-  });
+  };
+  document.querySelector("#mobile-menu-modal nav").addEventListener("click", handleMobileMenuAction);
+  document.querySelector(".hud-more-list").addEventListener("click", handleMobileMenuAction);
   document.querySelector("#ending").addEventListener("click", event => { if (event.target.closest("button")) actions.onRestart(); });
   document.querySelector("#continue-quarter").addEventListener("click", actions.onResultContinue);
   document.querySelector("#previous-result").addEventListener("click", actions.onPreviousResult);
@@ -89,7 +96,7 @@ export function render(state, decisions, evaluation = null) {
   const year = Math.ceil(Math.min(state.month, 20) / 4);
   document.querySelector("#month-label").textContent = `YEAR ${year} / Q${quarter}`;
   document.querySelector("#hud-quarter").textContent = `YEAR ${year} / Q${quarter}`;
-  document.querySelector("#hud-execute-label").textContent = `YEAR ${year} / Q${quarter} を実行`;
+  document.querySelector("#hud-execute-label").textContent = "実行";
   document.querySelector("#business-label").textContent = `${business.name} / ${strategyLabel(state.strategy)}`;
   document.querySelector("#scenario-category").textContent = state.gameOver ? "最終レポート" : strategyLabel(state.scenario.category);
   document.querySelector("#scenario-title").textContent = state.gameOver ? "5年間の経営結果" : state.scenario.title;
@@ -97,7 +104,10 @@ export function render(state, decisions, evaluation = null) {
   document.querySelector("#hud-signal-category").textContent = state.gameOver ? "FINAL" : strategyLabel(state.scenario.category);
   document.querySelector("#hud-signal-title").textContent = state.gameOver ? "5年間の経営結果" : state.scenario.title;
   document.querySelector("#hud-signal-description").textContent = state.gameOver ? "積み重ねた判断が、会社の現在地を作りました。" : state.scenario.description;
-  document.querySelector("#market-board").innerHTML = `<p><strong>${regimeLabel(state.regime)}</strong> / 市場規模 ${state.totalMarket.toLocaleString()} / 自社シェア ${state.marketShare}%</p><p class="muted">${state.competitors.map(c => `${competitorLabel(c)} ${c.share}% · ${competitorTypeLabel(c.type)} · 価格 ${yen(c.price)} · 商品力 ${c.product} · ブランド ${c.brand}`).join("<br>")}</p>`;
+  const marketSummary = `<p><strong>${regimeLabel(state.regime)}</strong> / 市場規模 ${state.totalMarket.toLocaleString()} / 自社シェア ${state.marketShare}%</p>`;
+  const competitorsHtml = `<p class="muted">${state.competitors.map(c => `${competitorLabel(c)} ${c.share}% · ${competitorTypeLabel(c.type)} · 価格 ${yen(c.price)} · 商品力 ${c.product} · ブランド ${c.brand}`).join("<br>")}</p>`;
+  document.querySelector("#market-board").innerHTML = marketSummary + competitorsHtml;
+  document.querySelector("#hud-market-board").innerHTML = `${marketSummary}<h4>競合情報</h4>${competitorsHtml}`;
   document.querySelector("#meeting").innerHTML = executiveMeeting(state).map(([role, comment]) => `<p><strong>${role}</strong> <span>${comment}</span></p>`).join("");
   const cards = [
     ["所持金", yen(state.cash), "CASH"], ["顧客数", `${state.customers.toLocaleString()}人`, "CUSTOMERS"],
@@ -110,6 +120,7 @@ export function render(state, decisions, evaluation = null) {
   document.querySelector("#hud-kpis").innerHTML = [cards[0], cards[2], cards[3], cards[1]].map(([label, value, code]) => `<div><small>${code}</small><span>${label}</span><strong class="${value.startsWith("-") ? "negative" : ""}">${value}</strong></div>`).join("");
   if (state.customers >= 900) cards.push(["市場シェア", `${state.marketShare}%`, "SHARE"], ["解約率", `${(state.churnRate * 100).toFixed(1)}%`, "CHURN"], ["CAC", yen(decisions.advertising / Math.max(1, state.history.at(-1)?.newCustomers || 1)), "CAC"]);
   document.querySelector("#status-grid").innerHTML = cards.map(([label, value, code]) => `<div class="stat"><small>${code}</small><span>${label}</span><strong class="${value.startsWith("-") ? "negative" : ""}">${value}</strong></div>`).join("");
+  document.querySelector("#hud-company-status").innerHTML = cards.slice(4).map(([label, value, code]) => `<div><small>${code}</small><span>${label}</span><strong class="${value.startsWith("-") ? "negative" : ""}">${value}</strong></div>`).join("");
   document.querySelector("#controls").innerHTML = controlDefinitions.map(([key, label, code, format]) => `<div class="control"><div><small>${code}</small><label>${label}</label></div><div class="stepper"><button data-key="${key}" data-direction="-1" aria-label="${label}を減らす">−</button><output>${format(decisions[key])}</output><button data-key="${key}" data-direction="1" aria-label="${label}を増やす">＋</button></div></div>`).join("");
   document.querySelector("#hud-controls").innerHTML = controlDefinitions.map(([key, label, code, format]) => `<div class="hud-control"><label><small>${code}</small>${label}</label><div class="stepper"><button data-key="${key}" data-direction="-1" aria-label="${label}を減らす">−</button><output>${format(decisions[key])}</output><button data-key="${key}" data-direction="1" aria-label="${label}を増やす">＋</button></div></div>`).join("");
   document.querySelector("#strategy").innerHTML = Object.entries(strategies).map(([id, strategy]) => `<button data-strategy="${id}" class="${state.strategy === id ? "selected" : ""}" title="${strategy.description}">${strategyLabel(id)}</button>`).join("");
@@ -129,7 +140,7 @@ export function render(state, decisions, evaluation = null) {
   document.querySelector("#hud-emergency-loan").hidden = !crisis;
   document.querySelector("#next-turn").disabled = state.gameOver;
   document.querySelector("#hud-next-turn").disabled = state.gameOver;
-  document.querySelector('[data-mobile-action="result"]').disabled = state.history.length === 0;
+  document.querySelectorAll('[data-mobile-action="result"]').forEach(button => { button.disabled = state.history.length === 0; });
   const warning = document.querySelector("#warning");
   warning.hidden = !state.warning;
   if (state.warning) warning.innerHTML = `<div class="section-label"><span>SURVIVAL</span> BOARD WARNING</div><h2>${state.warning.type}</h2><p>${state.warning.message}</p><p>次の四半期は、立て直しの重要な機会です。</p>`;

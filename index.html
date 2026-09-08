@@ -20,23 +20,48 @@
         <header class="hud-header">
           <strong>FORMULA <span>COMPANY</span></strong>
           <span id="hud-quarter">YEAR 1 / Q1</span>
-          <button id="hud-menu" type="button" aria-label="詳細メニューを開く" aria-expanded="false">☰</button>
         </header>
-        <div id="hud-kpis" class="hud-kpis" aria-label="主要KPI"></div>
-        <section class="hud-signal" aria-labelledby="hud-signal-title">
-          <div><span id="hud-signal-category"></span><small>MARKET SIGNAL</small></div>
-          <h2 id="hud-signal-title"></h2>
-          <p id="hud-signal-description"></p>
-          <button id="hud-signal-detail" class="hud-link" type="button">詳細を見る</button>
-        </section>
-        <section class="hud-decision" aria-label="意思決定">
-          <div class="hud-decision-head"><span>YOUR DECISION</span><label>戦略<select id="hud-strategy"></select></label></div>
-          <div id="hud-controls" class="hud-controls"></div>
-          <div class="hud-budget"><span>予定支出</span><strong id="hud-planned-cost"></strong></div>
-          <p id="hud-crisis" class="hud-crisis" hidden><strong>CRISIS MODE</strong> 資金繰りを優先</p>
-          <button id="hud-emergency-loan" class="secondary" hidden>緊急融資を受ける（200万円）</button>
-        </section>
-        <button id="hud-next-turn" class="primary hud-execute"><span id="hud-execute-label">YEAR 1 / Q1 を実行</span><span>→</span></button>
+        <div class="hud-pages">
+          <section class="hud-page" data-hud-page="market" aria-labelledby="hud-market-heading" hidden>
+            <div class="hud-page-heading"><small>MARKET</small><h2 id="hud-market-heading">市場</h2></div>
+            <section class="hud-signal" aria-labelledby="hud-signal-title">
+              <div><span id="hud-signal-category"></span><small>MARKET SIGNAL</small></div>
+              <h2 id="hud-signal-title"></h2><p id="hud-signal-description"></p>
+            </section>
+            <section class="hud-card"><h3>市場情報</h3><div id="hud-market-board"></div></section>
+          </section>
+          <section class="hud-page" data-hud-page="management" aria-labelledby="hud-management-heading">
+            <div class="hud-page-heading"><small>YOUR DECISION</small><h2 id="hud-management-heading">経営</h2></div>
+            <section class="hud-decision" aria-label="意思決定">
+              <div class="hud-decision-head"><span>YOUR DECISION</span><label>戦略<select id="hud-strategy"></select></label></div>
+              <div id="hud-controls" class="hud-controls"></div>
+              <div class="hud-budget"><span>予定支出</span><strong id="hud-planned-cost"></strong></div>
+              <p id="hud-crisis" class="hud-crisis" hidden><strong>CRISIS MODE</strong> 資金繰りを優先</p>
+              <button id="hud-emergency-loan" class="secondary" hidden>緊急融資を受ける（200万円）</button>
+            </section>
+          </section>
+          <section class="hud-page" data-hud-page="company" aria-labelledby="hud-company-heading" hidden>
+            <div class="hud-page-heading"><small>COMPANY STATUS</small><h2 id="hud-company-heading">会社</h2></div>
+            <div id="hud-kpis" class="hud-kpis" aria-label="主要KPI"></div>
+            <div id="hud-company-status" class="hud-company-status"></div>
+          </section>
+          <section class="hud-page" data-hud-page="more" aria-labelledby="hud-more-heading" hidden>
+            <div class="hud-page-heading"><small>MORE</small><h2 id="hud-more-heading">その他</h2></div>
+            <nav class="hud-more-list" aria-label="その他の機能">
+              <button type="button" data-mobile-action="projects">プロジェクト<span>LONG-TERM PROJECT</span></button>
+              <button type="button" data-mobile-action="result">前回結果<span>PREVIOUS RESULT</span></button>
+              <button type="button" data-mobile-panel="meeting">経営会議<span>EXECUTIVE MEETING</span></button>
+              <a href="/docs/" target="_blank" rel="noopener">ガイド<span>GUIDE ↗</span></a>
+            </nav>
+          </section>
+        </div>
+        <nav class="hud-bottom-nav" aria-label="メインナビゲーション">
+          <button type="button" data-hud-tab="market"><span aria-hidden="true">⌁</span><small>市場</small></button>
+          <button type="button" data-hud-tab="management" class="active" aria-current="page"><span aria-hidden="true">◫</span><small>経営</small></button>
+          <button id="hud-next-turn" type="button" class="hud-execute" aria-label="現在の四半期を実行"><span aria-hidden="true">→</span><small id="hud-execute-label">実行</small></button>
+          <button type="button" data-hud-tab="company"><span aria-hidden="true">▥</span><small>会社</small></button>
+          <button type="button" data-hud-tab="more"><span aria-hidden="true">•••</span><small>その他</small></button>
+        </nav>
       </section>
 
       <header class="topbar">
