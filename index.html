@@ -16,6 +16,29 @@
       <div class="setup-actions"><label>経営戦略 <select id="initial-strategy"></select></label><button id="start-company" class="primary" disabled>START COMPANY <span>→</span></button></div>
     </section>
     <main id="game" class="shell" hidden>
+      <section id="mobile-hud" class="mobile-hud" aria-label="四半期意思決定HUD">
+        <header class="hud-header">
+          <strong>FORMULA <span>COMPANY</span></strong>
+          <span id="hud-quarter">YEAR 1 / Q1</span>
+          <button id="hud-menu" type="button" aria-label="詳細メニューを開く" aria-expanded="false">☰</button>
+        </header>
+        <div id="hud-kpis" class="hud-kpis" aria-label="主要KPI"></div>
+        <section class="hud-signal" aria-labelledby="hud-signal-title">
+          <div><span id="hud-signal-category"></span><small>MARKET SIGNAL</small></div>
+          <h2 id="hud-signal-title"></h2>
+          <p id="hud-signal-description"></p>
+          <button id="hud-signal-detail" class="hud-link" type="button">詳細を見る</button>
+        </section>
+        <section class="hud-decision" aria-label="意思決定">
+          <div class="hud-decision-head"><span>YOUR DECISION</span><label>戦略<select id="hud-strategy"></select></label></div>
+          <div id="hud-controls" class="hud-controls"></div>
+          <div class="hud-budget"><span>予定支出</span><strong id="hud-planned-cost"></strong></div>
+          <p id="hud-crisis" class="hud-crisis" hidden><strong>CRISIS MODE</strong> 資金繰りを優先</p>
+          <button id="hud-emergency-loan" class="secondary" hidden>緊急融資を受ける（200万円）</button>
+        </section>
+        <button id="hud-next-turn" class="primary hud-execute"><span id="hud-execute-label">YEAR 1 / Q1 を実行</span><span>→</span></button>
+      </section>
+
       <header class="topbar">
         <div><p class="eyebrow" id="business-label">MANAGEMENT SIMULATION</p><h1>FORMULA <span>COMPANY</span></h1></div>
         <div class="month"><small>OPERATING QUARTER</small><strong id="month-label">YEAR 1 / Q1</strong><a class="guide-link" href="/docs/" target="_blank" rel="noopener">GUIDE ↗</a></div>
@@ -75,6 +98,25 @@
         <p class="muted">費用は開始時に支払い、同時に進められるのは1件までです。</p>
         <div id="project-list" class="project-list"></div>
         <p id="project-error" class="project-error" role="alert"></p>
+      </section>
+    </div>
+    <div id="mobile-menu-modal" class="mobile-overlay" hidden>
+      <section class="mobile-sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-menu-title">
+        <header><h2 id="mobile-menu-title">DETAIL MENU</h2><button id="close-mobile-menu" type="button" aria-label="メニューを閉じる">×</button></header>
+        <nav aria-label="詳細情報">
+          <button type="button" data-mobile-panel="status">会社詳細<span>COMPANY STATUS</span></button>
+          <button type="button" data-mobile-panel="market">市場・競合<span>MARKET & COMPETITORS</span></button>
+          <button type="button" data-mobile-panel="meeting">経営会議<span>EXECUTIVE MEETING</span></button>
+          <button type="button" data-mobile-action="projects">プロジェクト<span>LONG-TERM PROJECT</span></button>
+          <button type="button" data-mobile-action="result">前回結果<span>PREVIOUS RESULT</span></button>
+          <a href="/docs/" target="_blank" rel="noopener">ガイド<span>GUIDE ↗</span></a>
+        </nav>
+      </section>
+    </div>
+    <div id="mobile-info-modal" class="mobile-overlay" hidden>
+      <section class="mobile-sheet mobile-info-sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-info-title">
+        <header><h2 id="mobile-info-title">DETAIL</h2><button id="close-mobile-info" type="button" aria-label="詳細を閉じる">×</button></header>
+        <div id="mobile-info-content"></div>
       </section>
     </div>
     <script type="module" src="src/main.js"></script>
