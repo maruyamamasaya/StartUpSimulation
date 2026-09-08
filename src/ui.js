@@ -66,7 +66,8 @@ export function bindUI(actions) {
       const sources = { status: ["COMPANY STATUS", "#status-grid"], market: ["MARKET & COMPETITORS", "#market-board"], meeting: ["EXECUTIVE MEETING", "#meeting"] };
       const [title, selector] = sources[panel.dataset.mobilePanel];
       closeMobileOverlay("#mobile-menu-modal");
-      openMobileInfo(title, document.querySelector(selector).innerHTML);
+      const content = document.querySelector(selector).innerHTML;
+      openMobileInfo(title, panel.dataset.mobilePanel === "status" ? `<div class="status-grid">${content}</div>` : content);
     }
     if (action) {
       closeMobileOverlay("#mobile-menu-modal");
